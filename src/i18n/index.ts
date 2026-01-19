@@ -1,0 +1,96 @@
+export const messages = {
+  ar: {
+    app: {
+      title: "تحويل",
+      subtitle: "حوّل الملفات من صيغة PDF إلى TXT و DOCX",
+      note: "ملاحظة: يدعم تحويل الملفات بصيغة PDF أو صورة (JPG و JPEG و PNG) فقط.",
+    },
+    buttons: {
+      convertFile: "تحويل ملف واحد",
+      convertFolder: "تحويل مجلد كامل",
+      language: "English",
+      signIn: "تسجيل الدخول",
+      signOut: "تسجيل الخروج",
+      openFolder: "فتح المجلد",
+      cancel: "إلغاء",
+    },
+    progress: {
+      global: "التقدم العام:",
+      file: "تقدم الملف الحالي:",
+      preparing: "جارٍ التحضير...",
+      splitting: "جارٍ تقسيم الملف...",
+      ocr: "جارٍ استخراج النصوص...",
+      writing: "جارٍ كتابة الملف...",
+      done: "انتهى",
+    },
+    messages: {
+      successTitle: "اكتمل التحويل",
+      errorTitle: "خطأ",
+      noFiles: "لم نعثر على ملفات لتحويلها.",
+      badExtension: "صيغة الملف غير مدعومة.",
+      authRequired: "يرجى تسجيل الدخول أولاً.",
+      conversionComplete: "انتهى تحويل {count} ملف بنجاح.",
+      conversionCompleteOne: "انتهى تحويل ملف واحد بنجاح.",
+      conversionCompleteTwo: "انتهى تحويل ملفين بنجاح.",
+    },
+    settings: {
+      title: "الإعدادات",
+      dpi: "دقة الصورة (DPI)",
+      formats: "صيغ الإخراج",
+      concurrency: "التزامن",
+      ocrConcurrency: "عدد عمليات OCR المتزامنة",
+    },
+    auth: {
+      signedInAs: "تم تسجيل الدخول كـ",
+      notSignedIn: "لم يتم تسجيل الدخول",
+    },
+  },
+  en: {
+    app: {
+      title: "Tahweel",
+      subtitle: "Convert PDF files to TXT and DOCX",
+      note: "Note: Tahweel supports PDF or image files (JPG, JPEG, and PNG) only.",
+    },
+    buttons: {
+      convertFile: "Convert a Single File",
+      convertFolder: "Convert a Folder",
+      language: "العربية",
+      signIn: "Sign In",
+      signOut: "Sign Out",
+      openFolder: "Open Folder",
+      cancel: "Cancel",
+    },
+    progress: {
+      global: "Progress:",
+      file: "Current File:",
+      preparing: "Preparing...",
+      splitting: "Splitting file...",
+      ocr: "Extracting text...",
+      writing: "Writing file...",
+      done: "Done",
+    },
+    messages: {
+      successTitle: "Conversion Complete",
+      errorTitle: "Error",
+      noFiles: "No files found to convert.",
+      badExtension: "Unsupported file format.",
+      authRequired: "Please sign in first.",
+      conversionComplete: "Finished converting {count} file(s) successfully.",
+      conversionCompleteOne: "Finished converting 1 file successfully.",
+      conversionCompleteTwo: "Finished converting 2 files successfully.",
+    },
+    settings: {
+      title: "Settings",
+      dpi: "Image Resolution (DPI)",
+      formats: "Output Formats",
+      concurrency: "Concurrency",
+      ocrConcurrency: "Concurrent OCR Operations",
+    },
+    auth: {
+      signedInAs: "Signed in as",
+      notSignedIn: "Not signed in",
+    },
+  },
+};
+
+export type MessageSchema = typeof messages.en;

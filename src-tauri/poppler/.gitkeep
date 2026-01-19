@@ -1,0 +1,8 @@
+# Poppler binaries go here
+# - pdftoppm (pdftoppm.exe on Windows)
+# - pdfinfo (pdfinfo.exe on Windows)
+#
+# Download from:
+# - Windows: https://github.com/oschwartz10612/poppler-windows/releases
+# - macOS: brew install poppler (then copy binaries)
+# - Linux: apt install poppler-utils (then copy binaries)

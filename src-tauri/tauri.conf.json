@@ -36,28 +36,5 @@
     ],
     "resources": []
   },
-  "plugins": {
-    "fs": {
-      "scope": {
-        "allow": ["**"],
-        "deny": []
-      }
-    },
-    "dialog": {
-      "all": true
-    },
-    "shell": {
-      "all": false,
-      "open": true
-    },
-    "http": {
-      "scope": {
-        "allow": [
-          { "url": "https://accounts.google.com/**" },
-          { "url": "https://oauth2.googleapis.com/**" },
-          { "url": "https://www.googleapis.com/**" }
-        ]
-      }
-    }
-  }
+  "plugins": {}
 }

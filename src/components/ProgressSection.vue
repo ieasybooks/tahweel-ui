@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProcessingStore } from "@/stores/processing";
-import { open } from "@tauri-apps/plugin-shell";
+import { invoke } from "@tauri-apps/api/core";
 
 const { t } = useI18n();
 const processingStore = useProcessingStore();
@@ -33,7 +33,7 @@ const currentFileName = computed(() => {
 
 async function openOutputFolder() {
   if (processingStore.outputFolder) {
-    await open(processingStore.outputFolder);
+    await invoke("open_folder", { path: processingStore.outputFolder });
   }
 }
 </script>

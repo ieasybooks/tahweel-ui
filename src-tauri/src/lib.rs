@@ -6,6 +6,12 @@ use auth::{clear_auth_tokens, get_user_info, load_stored_tokens, refresh_access_
 use google_drive::{delete_google_drive_file, export_google_doc_as_text, upload_to_google_drive};
 use pdf::{cleanup_temp_dir, extract_pdf_page, get_pdf_page_count, split_pdf, write_binary_file};
 
+/// Open a folder in the system file manager
+#[tauri::command]
+async fn open_folder(path: String) -> Result<(), String> {
+    open::that(&path).map_err(|e| format!("Failed to open folder: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -30,6 +36,8 @@ pub fn run() {
             extract_pdf_page,
             cleanup_temp_dir,
             write_binary_file,
+            // Utility commands
+            open_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

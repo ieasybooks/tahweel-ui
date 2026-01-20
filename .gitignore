@@ -25,3 +25,9 @@ dist-ssr
 
 # Tauri
 src-tauri/target/
+
+# PDFium binaries (downloaded separately for each platform)
+src-tauri/libs/
+src-tauri/resources/*.dylib
+src-tauri/resources/*.dll
+src-tauri/resources/*.so

@@ -32,6 +32,8 @@ url = "2"
 base64 = "0.22"
 urlencoding = "2"
 open = "5"
+pdfium-render = { version = "0.8", features = ["image"] }
+image = "0.25"
 
 [profile.dev]
 incremental = true

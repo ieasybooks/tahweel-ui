@@ -1,7 +1,9 @@
+use image::ImageFormat;
+use pdfium_render::prelude::*;
 use serde::Serialize;
 use std::fs;
-use std::path::Path;
-use std::process::Command;
+use std::path::PathBuf;
+use tauri::{AppHandle, Emitter, Manager};
 use tempfile::TempDir;
 
 #[derive(Debug, Serialize)]
@@ -12,150 +14,139 @@ pub struct SplitResult {
     pub temp_dir: String,
 }
 
-/// Find the pdftoppm binary path
-fn find_pdftoppm() -> Result<String, String> {
-    // Try common locations
-    let paths = [
-        "pdftoppm",                              // System PATH
-        "/usr/bin/pdftoppm",                     // Linux
-        "/usr/local/bin/pdftoppm",               // macOS Homebrew
-        "/opt/homebrew/bin/pdftoppm",            // macOS Homebrew (Apple Silicon)
-        "C:\\Program Files\\poppler\\bin\\pdftoppm.exe", // Windows
-    ];
-
-    for path in paths {
-        let result = if cfg!(windows) {
-            Command::new("where").arg(path).output()
-        } else {
-            Command::new("which").arg(path).output()
-        };
-
-        if let Ok(output) = result {
-            if output.status.success() {
-                return Ok(path.to_string());
-            }
-        }
-
-        // Also check if the path exists directly
-        if Path::new(path).exists() {
-            return Ok(path.to_string());
-        }
-    }
-
-    Err("pdftoppm not found. Please install Poppler utilities.".to_string())
+#[derive(Clone, Serialize)]
+struct SplitProgress {
+    #[serde(rename = "currentPage")]
+    current_page: u32,
+    #[serde(rename = "totalPages")]
+    total_pages: u32,
+    percentage: f32,
 }
 
-/// Find the pdfinfo binary path
-fn find_pdfinfo() -> Result<String, String> {
-    // Try common locations
-    let paths = [
-        "pdfinfo",                               // System PATH
-        "/usr/bin/pdfinfo",                      // Linux
-        "/usr/local/bin/pdfinfo",                // macOS Homebrew
-        "/opt/homebrew/bin/pdfinfo",             // macOS Homebrew (Apple Silicon)
-        "C:\\Program Files\\poppler\\bin\\pdfinfo.exe", // Windows
-    ];
+/// Find the PDFium library path
+fn find_pdfium_library(app: &AppHandle) -> Result<PathBuf, String> {
+    let lib_name = if cfg!(target_os = "windows") {
+        "pdfium.dll"
+    } else if cfg!(target_os = "macos") {
+        "libpdfium.dylib"
+    } else {
+        "libpdfium.so"
+    };
 
-    for path in paths {
-        let result = if cfg!(windows) {
-            Command::new("where").arg(path).output()
-        } else {
-            Command::new("which").arg(path).output()
-        };
+    // Try multiple locations
+    let mut search_paths = Vec::new();
 
-        if let Ok(output) = result {
-            if output.status.success() {
-                return Ok(path.to_string());
-            }
-        }
+    // 1. Resource directory (production)
+    if let Ok(resource_path) = app.path().resource_dir() {
+        search_paths.push(resource_path.join(lib_name));
+        search_paths.push(resource_path.join("resources").join(lib_name));
+    }
 
-        // Also check if the path exists directly
-        if Path::new(path).exists() {
-            return Ok(path.to_string());
+    // 2. Current directory resources (development)
+    search_paths.push(PathBuf::from("resources").join(lib_name));
+    search_paths.push(PathBuf::from("src-tauri/resources").join(lib_name));
+
+    // 3. Executable directory (fallback)
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            search_paths.push(exe_dir.join(lib_name));
+            // On macOS, resources are in Contents/Resources
+            search_paths.push(exe_dir.join("../Resources").join(lib_name));
         }
     }
 
-    Err("pdfinfo not found. Please install Poppler utilities.".to_string())
+    for path in &search_paths {
+        if path.exists() {
+            return Ok(path.clone());
+        }
+    }
+
+    Err(format!(
+        "PDFium library '{}' not found. Searched: {:?}",
+        lib_name, search_paths
+    ))
+}
+
+/// Create a PDFium instance
+fn create_pdfium(app: &AppHandle) -> Result<Pdfium, String> {
+    let lib_path = find_pdfium_library(app)?;
+
+    let bindings = Pdfium::bind_to_library(lib_path.to_str().unwrap())
+        .map_err(|e| format!("Failed to bind to PDFium library: {}", e))?;
+
+    Ok(Pdfium::new(bindings))
 }
 
 /// Get the total number of pages in a PDF file
 #[tauri::command]
-pub async fn get_pdf_page_count(pdf_path: String) -> Result<u32, String> {
-    let pdfinfo_path = find_pdfinfo()?;
+pub async fn get_pdf_page_count(pdf_path: String, app: AppHandle) -> Result<u32, String> {
+    let pdfium = create_pdfium(&app)?;
 
-    let output = Command::new(&pdfinfo_path)
-        .arg(&pdf_path)
-        .output()
-        .map_err(|e| format!("Failed to run pdfinfo: {}", e))?;
+    let document = pdfium
+        .load_pdf_from_file(&pdf_path, None)
+        .map_err(|e| format!("Failed to load PDF: {:?}", e))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("pdfinfo failed: {}", stderr));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-
-    // Parse "Pages: N" from output
-    for line in stdout.lines() {
-        if line.starts_with("Pages:") {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 2 {
-                return parts[1]
-                    .parse()
-                    .map_err(|_| "Failed to parse page count".to_string());
-            }
-        }
-    }
-
-    Err("Could not find page count in pdfinfo output".to_string())
+    Ok(document.pages().len() as u32)
 }
 
-/// Split a PDF into individual page images
+/// Split a PDF into individual page images with progress events
 #[tauri::command]
 pub async fn split_pdf(
     pdf_path: String,
     dpi: u32,
-    _total_pages: u32,
+    total_pages: u32,
+    app: AppHandle,
 ) -> Result<SplitResult, String> {
-    let pdftoppm_path = find_pdftoppm()?;
+    let pdfium = create_pdfium(&app)?;
+
+    let document = pdfium
+        .load_pdf_from_file(&pdf_path, None)
+        .map_err(|e| format!("Failed to load PDF: {:?}", e))?;
 
     // Create temp directory
     let temp_dir = TempDir::new().map_err(|e| e.to_string())?;
 
     // Keep the temp directory (don't auto-delete)
     let temp_path_owned = temp_dir.keep();
-    let output_prefix = temp_path_owned.join("page");
 
-    // Run pdftoppm to convert all pages at once
-    let output = Command::new(&pdftoppm_path)
-        .args([
-            "-png",
-            "-r",
-            &dpi.to_string(),
-            &pdf_path,
-            output_prefix.to_str().unwrap(),
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run pdftoppm: {}", e))?;
+    let mut image_paths: Vec<String> = Vec::new();
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("pdftoppm failed: {}", stderr));
+    // Configure rendering based on DPI
+    // Standard letter/A4 is roughly 8.5x11 inches
+    let render_config = PdfRenderConfig::new()
+        .set_target_width((dpi as i32) * 8) // ~8 inches width
+        .set_maximum_height((dpi as i32) * 12) // ~12 inches height
+        .rotate_if_landscape(PdfPageRenderRotation::None, false);
+
+    // Render each page
+    for (index, page) in document.pages().iter().enumerate() {
+        let page_num = (index + 1) as u32;
+
+        // Emit progress event
+        let _ = app.emit(
+            "split-progress",
+            SplitProgress {
+                current_page: page_num,
+                total_pages,
+                percentage: ((page_num as f32 / total_pages as f32) * 100.0).round(),
+            },
+        );
+
+        // Render page to image
+        let image = page
+            .render_with_config(&render_config)
+            .map_err(|e| format!("Failed to render page {}: {:?}", page_num, e))?
+            .as_image();
+
+        // Save as PNG
+        let output_path = temp_path_owned.join(format!("page-{:04}.png", page_num));
+        image
+            .into_rgb8()
+            .save_with_format(&output_path, ImageFormat::Png)
+            .map_err(|e| format!("Failed to save page {} as PNG: {}", page_num, e))?;
+
+        image_paths.push(output_path.to_string_lossy().to_string());
     }
-
-    // Collect generated image paths
-    let mut image_paths: Vec<String> = fs::read_dir(&temp_path_owned)
-        .map_err(|e| e.to_string())?
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            if path.extension()?.to_str()? == "png" {
-                Some(path.to_string_lossy().to_string())
-            } else {
-                None
-            }
-        })
-        .collect();
 
     // Sort paths to ensure correct page order
     image_paths.sort();
@@ -173,53 +164,51 @@ pub async fn extract_pdf_page(
     page_number: u32,
     dpi: u32,
     output_path: String,
+    app: AppHandle,
 ) -> Result<String, String> {
-    let pdftoppm_path = find_pdftoppm()?;
+    let pdfium = create_pdfium(&app)?;
 
-    let output_prefix = output_path.trim_end_matches(".png");
+    let document = pdfium
+        .load_pdf_from_file(&pdf_path, None)
+        .map_err(|e| format!("Failed to load PDF: {:?}", e))?;
 
-    let output = Command::new(&pdftoppm_path)
-        .args([
-            "-png",
-            "-r",
-            &dpi.to_string(),
-            "-f",
-            &page_number.to_string(),
-            "-l",
-            &page_number.to_string(),
-            &pdf_path,
-            output_prefix,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run pdftoppm: {}", e))?;
+    // Get the specific page (0-indexed)
+    let page = document
+        .pages()
+        .get((page_number - 1) as u16)
+        .map_err(|e| format!("Failed to get page {}: {:?}", page_number, e))?;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("pdftoppm failed: {}", stderr));
-    }
+    // Configure rendering
+    let render_config = PdfRenderConfig::new()
+        .set_target_width((dpi as i32) * 8)
+        .set_maximum_height((dpi as i32) * 12)
+        .rotate_if_landscape(PdfPageRenderRotation::None, false);
 
-    // Find the generated file (pdftoppm adds page number suffix)
-    let parent = Path::new(&output_path).parent().unwrap_or(Path::new("."));
-    let prefix = Path::new(output_prefix)
-        .file_name()
-        .unwrap()
-        .to_string_lossy();
+    // Render page to image
+    let image = page
+        .render_with_config(&render_config)
+        .map_err(|e| format!("Failed to render page {}: {:?}", page_number, e))?
+        .as_image();
 
-    for entry in fs::read_dir(parent).map_err(|e| e.to_string())? {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let file_name = entry.file_name().to_string_lossy().to_string();
-        if file_name.starts_with(&*prefix) && file_name.ends_with(".png") {
-            return Ok(entry.path().to_string_lossy().to_string());
-        }
-    }
+    // Save as PNG
+    let final_path = if output_path.ends_with(".png") {
+        output_path.clone()
+    } else {
+        format!("{}.png", output_path)
+    };
 
-    Err("Generated image file not found".to_string())
+    image
+        .into_rgb8()
+        .save_with_format(&final_path, ImageFormat::Png)
+        .map_err(|e| format!("Failed to save page as PNG: {}", e))?;
+
+    Ok(final_path)
 }
 
 /// Clean up a temporary directory
 #[tauri::command]
 pub async fn cleanup_temp_dir(path: String) -> Result<(), String> {
-    let path = Path::new(&path);
+    let path = std::path::Path::new(&path);
     if path.exists() && path.is_dir() {
         fs::remove_dir_all(path).map_err(|e| e.to_string())?;
     }

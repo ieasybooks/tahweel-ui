@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 export interface SplitProgress {
   currentPage: number;
@@ -37,24 +38,29 @@ export function usePdfProcessor() {
     // Get total pages first
     const totalPages = await getPageCount(pdfPath);
 
-    // Create temp directory and start splitting
-    const result = await invoke<SplitResult>("split_pdf", {
-      pdfPath,
-      dpi,
-      totalPages,
-    });
-
-    // For now, we report progress as completed since the Rust side handles it
-    // In a more complete implementation, we'd use Tauri events for real-time progress
+    // Set up event listener for progress updates
+    let unlisten: UnlistenFn | null = null;
     if (onProgress) {
-      onProgress({
-        currentPage: totalPages,
-        totalPages,
-        percentage: 100,
+      unlisten = await listen<SplitProgress>("split-progress", (event) => {
+        onProgress(event.payload);
       });
     }
 
-    return result;
+    try {
+      // Create temp directory and start splitting
+      const result = await invoke<SplitResult>("split_pdf", {
+        pdfPath,
+        dpi,
+        totalPages,
+      });
+
+      return result;
+    } finally {
+      // Clean up the event listener
+      if (unlisten) {
+        unlisten();
+      }
+    }
   }
 
   /**

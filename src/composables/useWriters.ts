@@ -1,5 +1,5 @@
 import { writeTextFile } from "@tauri-apps/plugin-fs";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, PageBreak } from "docx";
 import { invoke } from "@tauri-apps/api/core";
 
 export interface WriterOptions {
@@ -70,6 +70,8 @@ export function useWriters() {
 
   /**
    * Write DOCX output with proper RTL support
+   * Each PDF page becomes a separate DOCX page with proper page breaks
+   * Matches Ruby gem behavior: paragraph content followed by page break
    */
   async function writeDocx(texts: string[], outputPath: string): Promise<void> {
     const children: Paragraph[] = [];
@@ -80,45 +82,45 @@ export function useWriters() {
         .replace(/(\s)\1+/g, "$1")
         .trim();
 
-      // Compact if too many lines
+      // Compact if too many lines (matching Ruby's behavior)
       text = compactText(text);
 
       const isRtl = isArabicText(text);
       const lines = text.split("\n");
+      const isLastPage = i === texts.length - 1;
+
+      // Build children: TextRuns with line breaks, then PageBreak at the end (except last page)
+      const paragraphChildren: (TextRun | PageBreak)[] = [];
+
+      lines.forEach((line, lineIndex) => {
+        paragraphChildren.push(
+          new TextRun({
+            text: line,
+            size: 20, // 10pt (size is in half-points)
+            rightToLeft: isRtl,
+          })
+        );
+
+        // Add line break after each line except the last
+        if (lineIndex < lines.length - 1) {
+          paragraphChildren.push(new TextRun({ break: 1 }));
+        }
+      });
+
+      // Add page break after content (except for the last page)
+      // This matches Ruby's: docx.page if index < texts.size - 1
+      if (!isLastPage) {
+        paragraphChildren.push(new PageBreak());
+      }
 
       // Create paragraph with proper alignment and bidirectional text
       const paragraph = new Paragraph({
         alignment: isRtl ? "right" : "left",
         bidirectional: isRtl,
-        children: lines.flatMap((line, lineIndex) => {
-          const elements: TextRun[] = [
-            new TextRun({
-              text: line,
-              size: 20, // 10pt (size is in half-points)
-              rightToLeft: isRtl,
-            }),
-          ];
-
-          // Add line break except for the last line
-          if (lineIndex < lines.length - 1) {
-            elements.push(new TextRun({ break: 1 }));
-          }
-
-          return elements;
-        }),
+        children: paragraphChildren,
       });
 
       children.push(paragraph);
-
-      // Add page break between pages (except after the last one)
-      if (i < texts.length - 1) {
-        children.push(
-          new Paragraph({
-            children: [],
-            pageBreakBefore: true,
-          })
-        );
-      }
     }
 
     const doc = new Document({
@@ -129,13 +131,17 @@ export function useWriters() {
       ],
     });
 
-    // Generate the document buffer
-    const buffer = await Packer.toBuffer(doc);
+    // Generate the document as a Blob (works in browser environments)
+    const blob = await Packer.toBlob(doc);
+
+    // Convert blob to Uint8Array
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
 
     // Write using Tauri's file system
     await invoke("write_binary_file", {
       path: `${outputPath}.docx`,
-      data: Array.from(new Uint8Array(buffer)),
+      data: Array.from(uint8Array),
     });
   }
 

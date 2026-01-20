@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::{BufRead, BufReader, Write};
-use std::net::TcpListener;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
 
 const CLIENT_ID: &str = "512416833080-808aqp20iith31t9rgtdmsgc53jp0sc2.apps.googleusercontent.com";
 const CLIENT_SECRET: &str = "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";
@@ -125,25 +125,29 @@ pub async fn start_oauth_flow(_app: tauri::AppHandle) -> Result<AuthTokens, Stri
         urlencoding::encode(AUTH_SCOPE)
     );
 
-    // Open browser
-    tauri::async_runtime::spawn(async move {
-        let _ = open::that(&auth_url);
-    });
+    // Start TCP server to receive callback (async)
+    let listener = TcpListener::bind("127.0.0.1:3027")
+        .await
+        .map_err(|e| format!("Failed to bind to port 3027: {}", e))?;
 
-    // Start TCP server to receive callback
-    let listener = TcpListener::bind("127.0.0.1:3027").map_err(|e| e.to_string())?;
-    listener
-        .set_nonblocking(false)
-        .map_err(|e| e.to_string())?;
+    // Open browser AFTER binding the port (so the callback URL is ready)
+    open::that(&auth_url).map_err(|e| format!("Failed to open browser: {}", e))?;
 
+    // Wait for the OAuth callback
     let code = loop {
-        let (mut stream, _) = listener.accept().map_err(|e| e.to_string())?;
+        let (mut stream, _) = listener
+            .accept()
+            .await
+            .map_err(|e| format!("Failed to accept connection: {}", e))?;
 
-        let mut reader = BufReader::new(&stream);
+        let (reader, mut writer) = stream.split();
+        let mut buf_reader = BufReader::new(reader);
         let mut request_line = String::new();
-        reader
+
+        buf_reader
             .read_line(&mut request_line)
-            .map_err(|e| e.to_string())?;
+            .await
+            .map_err(|e| format!("Failed to read request: {}", e))?;
 
         // Check if this is the OAuth callback
         if let Some(code) = extract_code(&request_line) {
@@ -158,18 +162,16 @@ pub async fn start_oauth_flow(_app: tauri::AppHandle) -> Result<AuthTokens, Stri
                 SUCCESS_HTML.len(),
                 SUCCESS_HTML
             );
-            stream.write_all(response.as_bytes()).ok();
-            stream.flush().ok();
+            writer.write_all(response.as_bytes()).await.ok();
+            writer.flush().await.ok();
             break code;
         } else {
-            // Send 404 for other requests
+            // Send 404 for other requests (like favicon.ico)
             let response = "HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n";
-            stream.write_all(response.as_bytes()).ok();
-            stream.flush().ok();
+            writer.write_all(response.as_bytes()).await.ok();
+            writer.flush().await.ok();
         }
     };
-
-    drop(listener);
 
     // Exchange code for tokens
     let tokens = exchange_code_for_tokens(&code).await?;

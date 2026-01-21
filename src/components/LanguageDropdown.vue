@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { open } from "@tauri-apps/plugin-shell";
 
-const { locale, t } = useI18n();
+const { locale } = useI18n();
 const isOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 
@@ -11,11 +10,6 @@ const currentLanguage = computed(() => (locale.value === "ar" ? "AR" : "EN"));
 
 function selectLanguage(lang: "ar" | "en") {
   locale.value = lang;
-  isOpen.value = false;
-}
-
-async function openIEasyBooks() {
-  await open("https://ieasybooks.com");
   isOpen.value = false;
 }
 
@@ -67,14 +61,6 @@ onUnmounted(() => document.removeEventListener("click", handleClickOutside));
       :class="[$i18n.locale === 'ar' ? 'left-0' : 'right-0']"
     >
       <button
-        @click="selectLanguage('en')"
-        class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-start flex items-center gap-2"
-        :class="{ 'bg-green-50 text-green-700': locale === 'en' }"
-      >
-        <span class="w-5 text-center">{{ locale === "en" ? "✓" : "" }}</span>
-        <span>English</span>
-      </button>
-      <button
         @click="selectLanguage('ar')"
         class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-start flex items-center gap-2"
         :class="{ 'bg-green-50 text-green-700': locale === 'ar' }"
@@ -82,20 +68,13 @@ onUnmounted(() => document.removeEventListener("click", handleClickOutside));
         <span class="w-5 text-center">{{ locale === "ar" ? "✓" : "" }}</span>
         <span>العربية</span>
       </button>
-      <div class="border-t border-gray-200"></div>
       <button
-        @click="openIEasyBooks"
-        class="w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 text-start flex items-center gap-2"
+        @click="selectLanguage('en')"
+        class="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-start flex items-center gap-2"
+        :class="{ 'bg-green-50 text-green-700': locale === 'en' }"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-          />
-        </svg>
-        <span>iEasyBooks</span>
+        <span class="w-5 text-center">{{ locale === "en" ? "✓" : "" }}</span>
+        <span>English</span>
       </button>
     </div>
   </div>

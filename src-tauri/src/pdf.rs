@@ -97,7 +97,7 @@ pub async fn get_pdf_page_count(pdf_path: String, app: AppHandle) -> Result<u32,
     Ok(document.pages().len() as u32)
 }
 
-/// Split a PDF into individual page images with progress events (parallel JPEG processing).
+/// Split a PDF into individual page images with progress events (parallel PNG processing).
 ///
 /// # Memory Considerations
 /// Each parallel worker creates its own PDFium instance and loads the PDF document.
@@ -167,13 +167,13 @@ pub async fn split_pdf(
                 .map_err(|e| format!("Failed to render page {}: {}", page_num + 1, e))?
                 .as_image();
 
-            // Save as JPEG (much faster than PNG)
+            // Save as PNG (lossless, better for OCR quality)
             let output_path = PathBuf::from(temp_path_arc.as_str())
-                .join(format!("page-{:04}.jpg", page_num + 1));
+                .join(format!("page-{:04}.png", page_num + 1));
             image
                 .into_rgb8()
-                .save_with_format(&output_path, ImageFormat::Jpeg)
-                .map_err(|e| format!("Failed to save page {} as JPEG: {}", page_num + 1, e))?;
+                .save_with_format(&output_path, ImageFormat::Png)
+                .map_err(|e| format!("Failed to save page {} as PNG: {}", page_num + 1, e))?;
 
             // Update progress counter
             let count = processed_count.fetch_add(1, Ordering::Relaxed) + 1;
@@ -237,17 +237,17 @@ pub async fn extract_pdf_page(
         .map_err(|e| format!("Failed to render page {}: {}", page_number, e))?
         .as_image();
 
-    // Save as JPEG (faster encoding)
-    let final_path = if output_path.ends_with(".jpg") || output_path.ends_with(".jpeg") {
+    // Save as PNG (lossless, better for OCR quality)
+    let final_path = if output_path.ends_with(".png") {
         output_path.clone()
     } else {
-        format!("{}.jpg", output_path)
+        format!("{}.png", output_path)
     };
 
     image
         .into_rgb8()
-        .save_with_format(&final_path, ImageFormat::Jpeg)
-        .map_err(|e| format!("Failed to save page as JPEG: {}", e))?;
+        .save_with_format(&final_path, ImageFormat::Png)
+        .map_err(|e| format!("Failed to save page as PNG: {}", e))?;
 
     Ok(final_path)
 }
@@ -278,14 +278,14 @@ mod tests {
     #[test]
     fn test_split_result_serialization() {
         let result = SplitResult {
-            image_paths: vec!["/tmp/page-0001.jpg".to_string(), "/tmp/page-0002.jpg".to_string()],
+            image_paths: vec!["/tmp/page-0001.png".to_string(), "/tmp/page-0002.png".to_string()],
             temp_dir: "/tmp/tahweel-123".to_string(),
         };
 
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("imagePaths"));
         assert!(json.contains("tempDir"));
-        assert!(json.contains("page-0001.jpg"));
+        assert!(json.contains("page-0001.png"));
     }
 
     #[test]
@@ -327,10 +327,10 @@ mod tests {
     fn test_page_filename_format() {
         // Test the page filename format matches expected pattern
         for page_num in [1, 5, 10, 99, 100, 999, 1000] {
-            let filename = format!("page-{:04}.jpg", page_num);
+            let filename = format!("page-{:04}.png", page_num);
             assert!(filename.starts_with("page-"));
-            assert!(filename.ends_with(".jpg"));
-            assert_eq!(filename.len(), 13); // "page-" (5) + 4 digits + ".jpg" (4)
+            assert!(filename.ends_with(".png"));
+            assert_eq!(filename.len(), 13); // "page-" (5) + 4 digits + ".png" (4)
         }
     }
 
@@ -338,10 +338,10 @@ mod tests {
     fn test_page_filename_sorting() {
         // Test that zero-padded filenames sort correctly
         let mut filenames: Vec<String> = vec![
-            "page-0010.jpg".to_string(),
-            "page-0001.jpg".to_string(),
-            "page-0100.jpg".to_string(),
-            "page-0002.jpg".to_string(),
+            "page-0010.png".to_string(),
+            "page-0001.png".to_string(),
+            "page-0100.png".to_string(),
+            "page-0002.png".to_string(),
         ];
 
         filenames.sort();
@@ -349,10 +349,10 @@ mod tests {
         assert_eq!(
             filenames,
             vec![
-                "page-0001.jpg",
-                "page-0002.jpg",
-                "page-0010.jpg",
-                "page-0100.jpg"
+                "page-0001.png",
+                "page-0002.png",
+                "page-0010.png",
+                "page-0100.png"
             ]
         );
     }

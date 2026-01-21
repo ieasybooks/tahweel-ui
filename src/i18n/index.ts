@@ -47,7 +47,7 @@ export const messages = {
       useInputDirectory: "استخدام مجلد الإدخال",
     },
     auth: {
-      signedInAs: "تم تسجيل الدخول كـ",
+      signedIn: "تم تسجيل الدخول إلى Google Drive",
       notSignedIn: "لم يتم تسجيل الدخول",
     },
     dropzone: {
@@ -103,7 +103,7 @@ export const messages = {
       useInputDirectory: "Use input folder",
     },
     auth: {
-      signedInAs: "Signed in as",
+      signedIn: "Signed in to Google Drive",
       notSignedIn: "Not signed in",
     },
     dropzone: {

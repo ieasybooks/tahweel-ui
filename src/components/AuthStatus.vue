@@ -18,7 +18,7 @@ const { signIn, signOut } = useAuth();
         ></div>
         <span class="text-sm text-gray-700">
           <template v-if="authStore.isAuthenticated">
-            {{ t("auth.signedInAs") }}: {{ authStore.userEmail || "Google Drive" }}
+            {{ t("auth.signedIn") }}
           </template>
           <template v-else>
             {{ t("auth.notSignedIn") }}

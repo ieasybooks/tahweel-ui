@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAuthStore } from "@/stores/auth";
+import { useProcessingStore } from "@/stores/processing";
 import { useAuth } from "./useAuth";
 import pLimit from "p-limit";
 
@@ -7,6 +8,11 @@ export interface OcrProgress {
   completed: number;
   total: number;
   percentage: number;
+}
+
+export interface OcrResult {
+  texts: string[];
+  errors: { index: number; error: string }[];
 }
 
 interface UploadResult {
@@ -19,6 +25,7 @@ interface ExportResult {
 
 export function useGoogleDriveOcr() {
   const authStore = useAuthStore();
+  const processingStore = useProcessingStore();
   const { ensureValidToken } = useAuth();
 
   /**
@@ -72,23 +79,35 @@ export function useGoogleDriveOcr() {
   }
 
   /**
-   * Extract text from a single image using Google Drive OCR
+   * Delete multiple files from Google Drive (for cleanup on cancellation)
    */
-  async function extractSingleText(imagePath: string): Promise<string> {
-    const fileId = await uploadFile(imagePath);
-    try {
-      return await exportAsText(fileId);
-    } finally {
-      try {
-        await deleteFile(fileId);
-      } catch {
-        // Ignore delete errors
-      }
-    }
+  async function deleteFiles(fileIds: string[]): Promise<void> {
+    const accessToken = await ensureValidToken();
+    if (!accessToken) return;
+
+    // Delete files in parallel, ignoring errors
+    await Promise.allSettled(
+      fileIds.map((fileId) =>
+        invoke("delete_google_drive_file", { fileId, accessToken })
+      )
+    );
   }
 
   /**
-   * Extract text from multiple images with controlled concurrency
+   * Extract text from a single image using Google Drive OCR
+   * Returns the fileId along with text so it can be cleaned up if needed
+   */
+  async function extractSingleText(
+    imagePath: string
+  ): Promise<{ text: string; fileId: string }> {
+    const fileId = await uploadFile(imagePath);
+    const text = await exportAsText(fileId);
+    return { text, fileId };
+  }
+
+  /**
+   * Extract text from multiple images with controlled concurrency.
+   * Supports cancellation and returns partial results with errors.
    */
   async function extractText(
     imagePaths: string[],
@@ -96,15 +115,55 @@ export function useGoogleDriveOcr() {
     onProgress?: (progress: OcrProgress) => void
   ): Promise<string[]> {
     const limit = pLimit(concurrency);
-    const results: string[] = new Array(imagePaths.length);
+    const results: (string | null)[] = new Array(imagePaths.length).fill(null);
+    const uploadedFileIds: string[] = [];
+    const errors: { index: number; error: string }[] = [];
     let completed = 0;
 
     const tasks = imagePaths.map((path, index) =>
       limit(async () => {
-        const text = await extractSingleText(path);
-        results[index] = text;
-        completed++;
+        // Check for cancellation before starting
+        if (processingStore.isCancelled) {
+          throw new Error("Processing cancelled");
+        }
 
+        let fileId: string | null = null;
+
+        try {
+          // Upload and track the file ID
+          fileId = await uploadFile(path);
+          uploadedFileIds.push(fileId);
+
+          // Check for cancellation after upload
+          if (processingStore.isCancelled) {
+            throw new Error("Processing cancelled");
+          }
+
+          // Export text
+          const text = await exportAsText(fileId);
+          results[index] = text;
+
+          // Delete the file from Drive
+          try {
+            await deleteFile(fileId);
+            // Remove from tracking since it's deleted
+            const idx = uploadedFileIds.indexOf(fileId);
+            if (idx > -1) uploadedFileIds.splice(idx, 1);
+          } catch {
+            // Ignore delete errors, file will be orphaned but that's ok
+          }
+        } catch (error) {
+          const errorMessage = String(error);
+          if (!errorMessage.includes("cancelled")) {
+            errors.push({ index, error: errorMessage });
+            // Set empty string for failed pages to maintain order
+            results[index] = "";
+          } else {
+            throw error; // Re-throw cancellation
+          }
+        }
+
+        completed++;
         if (onProgress) {
           onProgress({
             completed,
@@ -112,19 +171,33 @@ export function useGoogleDriveOcr() {
             percentage: Math.round((completed / imagePaths.length) * 100),
           });
         }
-
-        return text;
       })
     );
 
-    await Promise.all(tasks);
-    return results;
+    try {
+      await Promise.all(tasks);
+    } catch (error) {
+      // If cancelled, clean up all uploaded files
+      if (processingStore.isCancelled && uploadedFileIds.length > 0) {
+        await deleteFiles(uploadedFileIds);
+      }
+      throw error;
+    }
+
+    // If we have errors but not cancelled, log them but return what we have
+    if (errors.length > 0 && !processingStore.isCancelled) {
+      console.warn(`OCR completed with ${errors.length} errors:`, errors);
+    }
+
+    // Return results, using empty string for any null values
+    return results.map((r) => r ?? "");
   }
 
   return {
     uploadFile,
     exportAsText,
     deleteFile,
+    deleteFiles,
     extractSingleText,
     extractText,
   };

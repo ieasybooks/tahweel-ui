@@ -2,10 +2,12 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProcessingStore } from "@/stores/processing";
+import { useFileProcessor } from "@/composables/useFileProcessor";
 import { invoke } from "@tauri-apps/api/core";
 
 const { t } = useI18n();
 const processingStore = useProcessingStore();
+const { cancelProcessing } = useFileProcessor();
 
 const stageText = computed(() => {
   if (!processingStore.currentFile) return "";
@@ -73,6 +75,21 @@ async function openOutputFolder() {
       <div v-if="processingStore.currentFile.totalPages > 0" class="text-xs text-gray-500 text-center">
         {{ processingStore.currentFile.currentPage }} / {{ processingStore.currentFile.totalPages }}
       </div>
+    </div>
+
+    <!-- Cancel Button -->
+    <div v-if="processingStore.isProcessing && !processingStore.isCancelled" class="text-center">
+      <button
+        @click="cancelProcessing"
+        class="px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors font-medium"
+      >
+        {{ t("buttons.cancel") }}
+      </button>
+    </div>
+
+    <!-- Cancelled State -->
+    <div v-if="processingStore.isCancelled && processingStore.isProcessing" class="text-center">
+      <span class="text-sm text-orange-600 font-medium">{{ t("progress.cancelling") || "Cancelling..." }}</span>
     </div>
 
     <!-- Completed State -->

@@ -23,6 +23,7 @@ export interface ProcessingState {
 
 export const useProcessingStore = defineStore("processing", () => {
   const isProcessing = ref(false);
+  const isCancelled = ref(false);
   const files = ref<string[]>([]);
   const currentFileIndex = ref(0);
   const currentFile = ref<FileProgress | null>(null);
@@ -43,6 +44,7 @@ export const useProcessingStore = defineStore("processing", () => {
 
   function startProcessing(filePaths: string[], outputDir: string) {
     isProcessing.value = true;
+    isCancelled.value = false;
     files.value = filePaths;
     totalFiles.value = filePaths.length;
     currentFileIndex.value = 0;
@@ -51,6 +53,10 @@ export const useProcessingStore = defineStore("processing", () => {
     errors.value = [];
     lastCompleted.value = false;
     outputFolder.value = outputDir;
+  }
+
+  function cancelProcessing() {
+    isCancelled.value = true;
   }
 
   function updateFileProgress(progress: FileProgress) {
@@ -74,6 +80,7 @@ export const useProcessingStore = defineStore("processing", () => {
 
   function reset() {
     isProcessing.value = false;
+    isCancelled.value = false;
     files.value = [];
     currentFileIndex.value = 0;
     currentFile.value = null;
@@ -86,6 +93,7 @@ export const useProcessingStore = defineStore("processing", () => {
 
   return {
     isProcessing,
+    isCancelled,
     files,
     currentFileIndex,
     currentFile,
@@ -97,6 +105,7 @@ export const useProcessingStore = defineStore("processing", () => {
     globalProgress,
     fileProgress,
     startProcessing,
+    cancelProcessing,
     updateFileProgress,
     completeFile,
     addError,

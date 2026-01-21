@@ -10,6 +10,7 @@ const currentLanguage = computed(() => (locale.value === "ar" ? "AR" : "EN"));
 
 function selectLanguage(lang: "ar" | "en") {
   locale.value = lang;
+  localStorage.setItem("tahweel-locale", lang);
   isOpen.value = false;
 }
 

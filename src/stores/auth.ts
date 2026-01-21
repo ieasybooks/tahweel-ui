@@ -15,9 +15,8 @@ export const useAuthStore = defineStore("auth", () => {
   const isAuthenticating = ref(false);
 
   const isAuthenticated = computed(() => {
-    if (!accessToken.value) return false;
-    if (expiresAt.value && Date.now() >= expiresAt.value) return false;
-    return true;
+    if (!accessToken.value || !expiresAt.value) return false;
+    return Date.now() < expiresAt.value;
   });
 
   const needsRefresh = computed(() => {

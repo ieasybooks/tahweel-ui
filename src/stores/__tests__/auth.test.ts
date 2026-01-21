@@ -70,12 +70,12 @@ describe("useAuthStore", () => {
       expect(store.isAuthenticated).toBe(false);
     });
 
-    it("returns true when expiresAt is null but token exists", () => {
+    it("returns false when expiresAt is null even if token exists", () => {
       const store = useAuthStore();
       store.accessToken = "token";
       store.expiresAt = null;
-      // Current behavior: returns true (noted in code review as potential issue)
-      expect(store.isAuthenticated).toBe(true);
+      // Must have valid expiresAt to be considered authenticated
+      expect(store.isAuthenticated).toBe(false);
     });
   });
 

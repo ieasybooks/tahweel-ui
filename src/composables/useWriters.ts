@@ -17,31 +17,56 @@ export function useWriters() {
   }
 
   /**
-   * Compact text by merging short adjacent lines
+   * Compact text by iteratively merging the shortest adjacent line pairs.
+   *
+   * Algorithm:
+   * 1. Split text into individual lines
+   * 2. Estimate "effective" line count by accounting for wrapped lines (lines > 80 chars)
+   * 3. If effective line count exceeds threshold (40 lines), find the shortest adjacent pair
+   * 4. Merge that pair with a space separator
+   * 5. Repeat until effective line count is acceptable or only 1 line remains
+   *
+   * This reduces verbosity while preserving readability by preferentially
+   * merging short lines (which are often sentence fragments or bullet points).
+   *
+   * @param text - The input text to compact
+   * @returns The compacted text with merged short lines
    */
   function compactText(text: string): string {
-    const lines = text.split("\n");
-    if (lines.length < 2) return text;
+    const MAX_EFFECTIVE_LINES = 40;
+    const LINE_WRAP_THRESHOLD = 80;
 
-    // Count expected lines (including wrapped lines)
-    const expectedLines = lines.length + lines.filter((l) => l.length > 80).length;
-    if (expectedLines <= 40) return text;
+    let lines = text.split("\n");
 
-    // Find the pair with minimum combined length and merge
-    let minIndex = 0;
-    let minLength = Infinity;
-    for (let i = 0; i < lines.length - 1; i++) {
-      const combined = lines[i].length + lines[i + 1].length;
-      if (combined < minLength) {
-        minLength = combined;
-        minIndex = i;
+    while (true) {
+      // Need at least 2 lines to merge
+      if (lines.length < 2) break;
+
+      // Estimate effective line count: actual lines + extra lines from wrapping
+      // Lines longer than LINE_WRAP_THRESHOLD will visually wrap to ~2 lines
+      const wrappedLineCount = lines.filter((l) => l.length > LINE_WRAP_THRESHOLD).length;
+      const effectiveLineCount = lines.length + wrappedLineCount;
+
+      // Stop if we're within the acceptable range
+      if (effectiveLineCount <= MAX_EFFECTIVE_LINES) break;
+
+      // Find adjacent pair with minimum combined length (best merge candidates)
+      let minIndex = 0;
+      let minCombinedLength = Infinity;
+      for (let i = 0; i < lines.length - 1; i++) {
+        const combinedLength = lines[i].length + lines[i + 1].length;
+        if (combinedLength < minCombinedLength) {
+          minCombinedLength = combinedLength;
+          minIndex = i;
+        }
       }
+
+      // Merge the shortest pair
+      lines[minIndex] = `${lines[minIndex]} ${lines[minIndex + 1]}`;
+      lines.splice(minIndex + 1, 1);
     }
 
-    lines[minIndex] = `${lines[minIndex]} ${lines[minIndex + 1]}`;
-    lines.splice(minIndex + 1, 1);
-
-    return compactText(lines.join("\n"));
+    return lines.join("\n");
   }
 
   /**

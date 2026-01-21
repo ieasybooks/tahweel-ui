@@ -14,6 +14,7 @@ export const messages = {
       signOut: "تسجيل الخروج",
       openFolder: "فتح المجلد",
       cancel: "إلغاء",
+      newConversion: "تحويل جديد",
     },
     progress: {
       global: "التقدم العام:",
@@ -70,6 +71,7 @@ export const messages = {
       signOut: "Sign Out",
       openFolder: "Open Folder",
       cancel: "Cancel",
+      newConversion: "New Conversion",
     },
     progress: {
       global: "Progress:",

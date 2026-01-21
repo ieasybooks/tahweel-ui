@@ -33,10 +33,21 @@ const currentFileName = computed(() => {
   return processingStore.currentFile.fileName;
 });
 
+const completionMessage = computed(() => {
+  const count = processingStore.completedFiles;
+  if (count === 1) return t("messages.conversionCompleteOne");
+  if (count === 2) return t("messages.conversionCompleteTwo");
+  return t("messages.conversionComplete", { count });
+});
+
 async function openOutputFolder() {
   if (processingStore.outputFolder) {
     await invoke("open_folder", { path: processingStore.outputFolder });
   }
+}
+
+function startNewConversion() {
+  processingStore.reset();
 }
 </script>
 
@@ -93,20 +104,41 @@ async function openOutputFolder() {
     </div>
 
     <!-- Completed State -->
-    <div v-if="processingStore.lastCompleted && !processingStore.isProcessing" class="text-center space-y-3">
-      <div class="flex items-center justify-center gap-2 text-green-600">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span class="font-medium">{{ t("progress.done") }}</span>
+    <div v-if="processingStore.lastCompleted && !processingStore.isProcessing" class="text-center space-y-4">
+      <!-- Success Icon -->
+      <div class="flex justify-center">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
       </div>
-      <button
-        v-if="processingStore.outputFolder"
-        @click="openOutputFolder"
-        class="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-      >
-        {{ t("buttons.openFolder") }}
-      </button>
+
+      <!-- Success Message -->
+      <div class="space-y-1">
+        <h3 class="text-lg font-semibold text-gray-800">{{ t("messages.successTitle") }}</h3>
+        <p class="text-sm text-gray-600">{{ completionMessage }}</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-center gap-3 pt-2">
+        <button
+          v-if="processingStore.outputFolder"
+          @click="openOutputFolder"
+          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          </svg>
+          {{ t("buttons.openFolder") }}
+        </button>
+        <button
+          @click="startNewConversion"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+        >
+          {{ t("buttons.newConversion") }}
+        </button>
+      </div>
     </div>
 
     <!-- Errors -->

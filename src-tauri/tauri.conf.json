@@ -13,13 +13,11 @@
     "windows": [
       {
         "title": "Tahweel",
-        "width": 600,
-        "height": 800,
-        "resizable": true,
+        "width": 500,
+        "height": 620,
+        "resizable": false,
         "fullscreen": false,
-        "center": true,
-        "minWidth": 500,
-        "minHeight": 600
+        "center": true
       }
     ],
     "security": {

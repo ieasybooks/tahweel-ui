@@ -247,7 +247,7 @@ describe("useSettingsStore", () => {
 
       expect(localStorageMock.setItem).toHaveBeenCalled();
       const savedValue = localStorageMock.setItem.mock.calls.find(
-        (call) => call[0] === "tahweel-settings"
+        (call: [string, string]) => call[0] === "tahweel-settings"
       );
       expect(savedValue).toBeDefined();
 

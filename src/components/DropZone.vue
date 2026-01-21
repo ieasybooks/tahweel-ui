@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import { useI18n } from "vue-i18n";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-
-const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "files-dropped", paths: string[]): void;

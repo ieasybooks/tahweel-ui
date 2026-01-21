@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { useAuthStore } from "@/stores/auth";
 import { useProcessingStore } from "@/stores/processing";
 import { useAuth } from "./useAuth";
 import pLimit from "p-limit";
@@ -24,7 +23,6 @@ interface ExportResult {
 }
 
 export function useGoogleDriveOcr() {
-  const authStore = useAuthStore();
   const processingStore = useProcessingStore();
   const { ensureValidToken } = useAuth();
 

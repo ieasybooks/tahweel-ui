@@ -1,11 +1,36 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useSettingsStore } from "@/stores/settings";
 
 const { t } = useI18n();
 const settingsStore = useSettingsStore();
 const isExpanded = ref(false);
+
+const outputDirDisplay = computed(() => {
+  if (!settingsStore.outputDirectory) {
+    return t("settings.useInputDirectory");
+  }
+  // Show just the last part of the path for brevity
+  const parts = settingsStore.outputDirectory.split(/[/\\]/);
+  return parts[parts.length - 1] || settingsStore.outputDirectory;
+});
+
+async function selectOutputDirectory() {
+  const selected = await open({
+    directory: true,
+    multiple: false,
+  });
+
+  if (selected) {
+    settingsStore.setOutputDirectory(selected);
+  }
+}
+
+function clearOutputDirectory() {
+  settingsStore.setOutputDirectory(null);
+}
 </script>
 
 <template>
@@ -44,7 +69,6 @@ const isExpanded = ref(false);
         />
         <div class="flex justify-between text-xs text-gray-500">
           <span>72</span>
-          <span>150</span>
           <span>300</span>
         </div>
       </div>
@@ -89,6 +113,38 @@ const isExpanded = ref(false);
           <span>10</span>
           <span>20</span>
         </div>
+      </div>
+
+      <!-- Output Directory -->
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">
+          {{ t("settings.outputDirectory") }}
+        </label>
+        <div class="flex gap-2">
+          <button
+            @click="selectOutputDirectory"
+            class="flex-1 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-start truncate"
+            :title="settingsStore.outputDirectory || t('settings.useInputDirectory')"
+          >
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              <span class="truncate">{{ outputDirDisplay }}</span>
+            </span>
+          </button>
+          <button
+            v-if="settingsStore.outputDirectory"
+            @click="clearOutputDirectory"
+            class="px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+            :title="t('settings.clearOutputDirectory')"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-xs text-gray-500">{{ t("settings.outputDirectoryHint") }}</p>
       </div>
     </div>
   </div>

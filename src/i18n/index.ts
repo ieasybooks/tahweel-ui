@@ -4,6 +4,7 @@ export const messages = {
       title: "تحويل",
       subtitle: "حوّل الملفات من صيغة PDF إلى TXT و DOCX",
       note: "ملاحظة: يدعم تحويل الملفات بصيغة PDF أو صورة (JPG و JPEG و PNG) فقط.",
+      windowTitle: "تحويل - تحويل PDF إلى نص",
     },
     buttons: {
       convertFile: "تحويل ملف واحد",
@@ -22,6 +23,7 @@ export const messages = {
       ocr: "جارٍ استخراج النصوص...",
       writing: "جارٍ كتابة الملف...",
       done: "انتهى",
+      cancelling: "جارٍ الإلغاء...",
     },
     messages: {
       successTitle: "اكتمل التحويل",
@@ -39,10 +41,18 @@ export const messages = {
       formats: "صيغ الإخراج",
       concurrency: "التزامن",
       ocrConcurrency: "عدد عمليات OCR المتزامنة",
+      outputDirectory: "مجلد الإخراج",
+      outputDirectoryHint: "اختر مجلد الإخراج (اختياري)",
+      clearOutputDirectory: "مسح",
+      useInputDirectory: "استخدام مجلد الإدخال",
     },
     auth: {
       signedInAs: "تم تسجيل الدخول كـ",
       notSignedIn: "لم يتم تسجيل الدخول",
+    },
+    dropzone: {
+      dropHere: "أفلت الملفات هنا",
+      supportedFormats: "PDF, JPG, JPEG, PNG",
     },
   },
   en: {
@@ -50,6 +60,7 @@ export const messages = {
       title: "Tahweel",
       subtitle: "Convert PDF files to TXT and DOCX",
       note: "Note: Tahweel supports PDF or image files (JPG, JPEG, and PNG) only.",
+      windowTitle: "Tahweel - PDF to Text",
     },
     buttons: {
       convertFile: "Convert a Single File",
@@ -68,6 +79,7 @@ export const messages = {
       ocr: "Extracting text...",
       writing: "Writing file...",
       done: "Done",
+      cancelling: "Cancelling...",
     },
     messages: {
       successTitle: "Conversion Complete",
@@ -85,10 +97,18 @@ export const messages = {
       formats: "Output Formats",
       concurrency: "Concurrency",
       ocrConcurrency: "Concurrent OCR Operations",
+      outputDirectory: "Output Folder",
+      outputDirectoryHint: "Choose output folder (optional)",
+      clearOutputDirectory: "Clear",
+      useInputDirectory: "Use input folder",
     },
     auth: {
       signedInAs: "Signed in as",
       notSignedIn: "Not signed in",
+    },
+    dropzone: {
+      dropHere: "Drop files here",
+      supportedFormats: "PDF, JPG, JPEG, PNG",
     },
   },
 };

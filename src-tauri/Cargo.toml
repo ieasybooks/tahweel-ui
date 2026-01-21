@@ -34,6 +34,7 @@ urlencoding = "2"
 open = "5"
 pdfium-render = { version = "0.8", features = ["image"] }
 image = "0.25"
+rayon = "1.10"
 
 [profile.dev]
 incremental = true

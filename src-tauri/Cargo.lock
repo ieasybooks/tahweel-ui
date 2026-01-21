@@ -4336,6 +4336,7 @@ dependencies = [
  "image",
  "open",
  "pdfium-render",
+ "rayon",
  "reqwest",
  "serde",
  "serde_json",

@@ -57,8 +57,12 @@ export function useGoogleDriveOcr() {
       accessToken,
     });
 
-    // Clean up the text (remove Google's page separator)
-    return result.text.replace(/﻿________________/g, "").trim();
+    // Clean up the text (remove Google's OCR artifacts)
+    // Google Drive adds BOM + underscores as page separators/artifacts
+    return result.text
+      .replace(/\uFEFF?_+/g, "") // BOM (optional) followed by one or more underscores
+      .replace(/\n{3,}/g, "\n\n") // Collapse multiple blank lines
+      .trim();
   }
 
   /**

@@ -1,110 +1,70 @@
 # Tahweel (تحويل)
 
-A cross-platform desktop application for PDF/Image OCR using Google Drive API.
+A cross-platform desktop application that converts PDF and image files to text using Google Drive's OCR capabilities.
 
 ## Features
 
-- **PDF to Text OCR** - Convert PDF files to TXT, DOCX, and JSON formats
-- **Image OCR** - Support for JPG, JPEG, and PNG images
-- **Arabic/RTL Support** - Full bilingual UI (Arabic and English) with RTL text detection in DOCX
-- **Batch Processing** - Convert entire folders with directory structure preservation
-- **Concurrent Processing** - Configurable concurrency for optimal performance
-- **Cross-Platform** - Works on Windows, macOS, and Linux
+- **PDF and Image OCR** - Convert PDF, JPG, JPEG, and PNG files to text
+- **Multiple Output Formats** - TXT, DOCX (with RTL support), and JSON
+- **Batch Processing** - Convert entire folders with all supported files
+- **Bilingual UI** - Arabic (RTL) and English interfaces
+- **Configurable Settings** - DPI (72-300), OCR concurrency (1-20), output formats
+
+## How It Works
+
+1. **PDF Splitting**: PDFs are rendered to PNG images using PDFium (one image per page)
+2. **OCR via Google Drive**: Images are uploaded to Google Drive as Google Docs (which triggers OCR), then exported as plain text
+3. **Output Generation**: Extracted text is written to the selected output formats
 
 ## Prerequisites
 
-### All Platforms
+- **Node.js** 18+
+- **Rust** 1.70+
+- **PDFium library** - Must be placed in `src-tauri/resources/` as:
+  - `libpdfium.dylib` (macOS)
+  - `libpdfium.so` (Linux)
+  - `pdfium.dll` (Windows)
 
-1. **Poppler utilities** - Required for PDF processing
-
-   **macOS (Homebrew):**
-   ```bash
-   brew install poppler
-   ```
-
-   **Linux (Ubuntu/Debian):**
-   ```bash
-   sudo apt-get install poppler-utils
-   ```
-
-   **Windows:**
-   Download from [poppler-windows releases](https://github.com/oschwartz10612/poppler-windows/releases) and add to PATH.
-
-2. **Node.js** - Version 18 or higher
-3. **Rust** - Version 1.70 or higher
-
-### Optional: mise (recommended)
-
-Use [mise](https://mise.jdx.dev/) for tool version management:
-```bash
-mise trust
-mise install
-```
+Optional: Use [mise](https://mise.jdx.dev/) for tool version management (`mise install`).
 
 ## Development
 
-### Install dependencies
-
 ```bash
-npm install
+npm install           # Install dependencies
+npm run tauri dev     # Run in development mode
+npm run tauri build   # Build for production
 ```
 
-### Run in development mode
+## Testing
 
 ```bash
-npm run tauri dev
-```
-
-### Build for production
-
-```bash
-npm run tauri build
+npm run test          # Run frontend tests
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage
+cargo test            # Run Rust tests (from src-tauri/)
 ```
 
 ## Project Structure
 
 ```
-tahweel-tauri/
-├── src/                    # Vue frontend
-│   ├── components/         # Vue components
-│   ├── composables/        # Vue composables (hooks)
-│   ├── stores/             # Pinia stores
-│   ├── i18n/               # Internationalization
-│   └── assets/             # CSS and assets
-├── src-tauri/              # Rust backend
-│   ├── src/
-│   │   ├── auth.rs         # OAuth authentication
-│   │   ├── google_drive.rs # Google Drive API
-│   │   ├── pdf.rs          # PDF processing with Poppler
-│   │   └── lib.rs          # Tauri commands
-│   └── tauri.conf.json     # Tauri configuration
-├── public/                 # Static assets
-└── package.json            # Node dependencies
+src/                      # Vue 3 frontend
+├── components/           # UI components
+├── composables/          # Business logic hooks
+├── stores/               # Pinia state management
+└── i18n/                 # Translations (ar/en)
+
+src-tauri/src/            # Rust backend
+├── lib.rs                # Tauri command registration
+├── auth.rs               # Google OAuth2 flow
+├── pdf.rs                # PDF rendering with PDFium
+└── google_drive.rs       # Google Drive API operations
 ```
 
 ## Technology Stack
 
-### Frontend
-- Vue 3 + TypeScript
-- Vite (build tool)
-- Tailwind CSS (styling)
-- Pinia (state management)
-- vue-i18n (internationalization)
-- docx (DOCX generation)
+**Frontend**: Vue 3, TypeScript, Pinia, Tailwind CSS, vue-i18n, docx
 
-### Backend
-- Tauri 2.0 (Rust)
-- Tokio (async runtime)
-- Reqwest (HTTP client)
-- Poppler (PDF processing)
-
-## Configuration
-
-Settings are persisted in localStorage and include:
-- DPI for PDF rendering (72-300)
-- Output formats (TXT, DOCX, JSON)
-- OCR concurrency (1-20)
-- Page separator for TXT output
+**Backend**: Tauri 2.0, Rust, pdfium-render, Rayon, Tokio, Reqwest
 
 ## License
 

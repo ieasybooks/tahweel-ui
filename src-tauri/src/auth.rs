@@ -337,3 +337,80 @@ pub async fn get_user_info(access_token: String) -> Result<UserInfo, String> {
     let info: UserInfo = response.json().await.map_err(|e| e.to_string())?;
     Ok(info)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_code_valid_request() {
+        let request = "GET /?code=4/0AcvDMrBxyz123 HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, Some("4/0AcvDMrBxyz123".to_string()));
+    }
+
+    #[test]
+    fn test_extract_code_with_additional_params() {
+        let request = "GET /?code=abc123&scope=email HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, Some("abc123".to_string()));
+    }
+
+    #[test]
+    fn test_extract_code_invalid_method() {
+        let request = "POST /?code=abc123 HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_extract_code_no_code_param() {
+        let request = "GET /?error=access_denied HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_extract_code_favicon_request() {
+        let request = "GET /favicon.ico HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_extract_code_empty_request() {
+        let request = "";
+        let result = extract_code(request);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_extract_code_root_path() {
+        let request = "GET / HTTP/1.1";
+        let result = extract_code(request);
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_extract_code_url_encoded() {
+        let request = "GET /?code=4%2F0AcvDMr HTTP/1.1";
+        let result = extract_code(request);
+        // URL decoding happens via url crate
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_get_token_path_returns_valid_path() {
+        let path = get_token_path();
+        assert!(path.to_string_lossy().contains("tahweel"));
+        assert!(path.to_string_lossy().ends_with("token.json"));
+    }
+
+    #[test]
+    fn test_get_token_path_creates_directory() {
+        let path = get_token_path();
+        let parent = path.parent().unwrap();
+        // The function should create the directory if it doesn't exist
+        assert!(parent.exists() || get_token_path().parent().unwrap().exists());
+    }
+}

@@ -9,8 +9,10 @@ const GOOGLE_DOCS_MIME_TYPE: &str = "application/vnd.google-apps.document";
 
 // Base URLs - can be overridden via environment variables for testing
 fn drive_upload_url() -> String {
-    std::env::var("TAHWEEL_TEST_DRIVE_UPLOAD_URL")
-        .unwrap_or_else(|_| "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id".to_string())
+    std::env::var("TAHWEEL_TEST_DRIVE_UPLOAD_URL").unwrap_or_else(|_| {
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"
+            .to_string()
+    })
 }
 
 fn drive_files_url() -> String {
@@ -84,7 +86,7 @@ pub async fn upload_to_google_drive(
             .part("file", file_part);
 
         let response = client
-            .post(&drive_upload_url())
+            .post(drive_upload_url())
             .bearer_auth(&access_token)
             .multipart(form)
             .send()
@@ -143,10 +145,7 @@ pub async fn export_google_doc_as_text(
 
 /// Delete a file from Google Drive
 #[tauri::command]
-pub async fn delete_google_drive_file(
-    file_id: String,
-    access_token: String,
-) -> Result<(), String> {
+pub async fn delete_google_drive_file(file_id: String, access_token: String) -> Result<(), String> {
     execute_with_retry(|| async {
         let client = reqwest::Client::new();
 
@@ -239,7 +238,9 @@ mod tests {
     impl<'a> EnvGuard<'a> {
         fn new(vars: &[&'static str]) -> Self {
             // Handle poisoned mutex - recover and continue
-            let lock = ENV_MUTEX.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let lock = ENV_MUTEX
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             // Clean vars at start to ensure clean state
             for var in vars {
                 std::env::remove_var(var);
@@ -277,7 +278,10 @@ mod tests {
             .windows(2)
             .filter(|w| (w[0] - w[1]).abs() > f64::EPSILON)
             .count();
-        assert!(unique_count > 0, "Random jitter should produce varying values");
+        assert!(
+            unique_count > 0,
+            "Random jitter should produce varying values"
+        );
     }
 
     #[test]
@@ -600,7 +604,10 @@ mod tests {
 
     #[test]
     fn test_google_docs_mime_type_constant() {
-        assert_eq!(GOOGLE_DOCS_MIME_TYPE, "application/vnd.google-apps.document");
+        assert_eq!(
+            GOOGLE_DOCS_MIME_TYPE,
+            "application/vnd.google-apps.document"
+        );
     }
 
     #[test]
@@ -1012,7 +1019,8 @@ mod tests {
             .create_async()
             .await;
 
-        let result = delete_google_drive_file("file_to_delete".to_string(), "token".to_string()).await;
+        let result =
+            delete_google_drive_file("file_to_delete".to_string(), "token".to_string()).await;
 
         mock.assert_async().await;
         assert!(result.is_ok());
@@ -1032,7 +1040,8 @@ mod tests {
             .create_async()
             .await;
 
-        let result = delete_google_drive_file("another_file".to_string(), "token".to_string()).await;
+        let result =
+            delete_google_drive_file("another_file".to_string(), "token".to_string()).await;
 
         mock.assert_async().await;
         assert!(result.is_ok());
@@ -1053,7 +1062,8 @@ mod tests {
             .create_async()
             .await;
 
-        let result = delete_google_drive_file("protected_file".to_string(), "token".to_string()).await;
+        let result =
+            delete_google_drive_file("protected_file".to_string(), "token".to_string()).await;
 
         mock.assert_async().await;
         assert!(result.is_err());

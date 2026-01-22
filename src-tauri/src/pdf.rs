@@ -117,10 +117,7 @@ pub async fn split_pdf(
 ) -> Result<SplitResult, String> {
     // Find library path first (before parallel processing)
     let lib_path = find_pdfium_library(&app)?;
-    let lib_path_str = lib_path
-        .to_str()
-        .ok_or("Invalid library path")?
-        .to_string();
+    let lib_path_str = lib_path.to_str().ok_or("Invalid library path")?.to_string();
 
     // Create temp directory for rendered page images
     let temp_dir = TempDir::new().map_err(|e| format!("Failed to create temp directory: {}", e))?;
@@ -168,8 +165,8 @@ pub async fn split_pdf(
                 .as_image();
 
             // Save as PNG (lossless, better for OCR quality)
-            let output_path = PathBuf::from(temp_path_arc.as_str())
-                .join(format!("page-{:04}.png", page_num + 1));
+            let output_path =
+                PathBuf::from(temp_path_arc.as_str()).join(format!("page-{:04}.png", page_num + 1));
             image
                 .into_rgb8()
                 .save_with_format(&output_path, ImageFormat::Png)
@@ -278,7 +275,10 @@ mod tests {
     #[test]
     fn test_split_result_serialization() {
         let result = SplitResult {
-            image_paths: vec!["/tmp/page-0001.png".to_string(), "/tmp/page-0002.png".to_string()],
+            image_paths: vec![
+                "/tmp/page-0001.png".to_string(),
+                "/tmp/page-0002.png".to_string(),
+            ],
             temp_dir: "/tmp/tahweel-123".to_string(),
         };
 
@@ -393,7 +393,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_binary_file_invalid_path() {
-        let result = write_binary_file("/nonexistent/path/file.bin".to_string(), vec![1, 2, 3]).await;
+        let result =
+            write_binary_file("/nonexistent/path/file.bin".to_string(), vec![1, 2, 3]).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to write file"));
     }
@@ -454,8 +455,14 @@ mod tests {
         // Create files inside
         let file1 = temp_path.join("page-0001.png");
         let file2 = temp_path.join("page-0002.png");
-        File::create(&file1).unwrap().write_all(b"fake png 1").unwrap();
-        File::create(&file2).unwrap().write_all(b"fake png 2").unwrap();
+        File::create(&file1)
+            .unwrap()
+            .write_all(b"fake png 1")
+            .unwrap();
+        File::create(&file2)
+            .unwrap()
+            .write_all(b"fake png 2")
+            .unwrap();
 
         assert!(temp_path.exists());
         assert!(file1.exists());
@@ -525,13 +532,21 @@ mod tests {
     #[tokio::test]
     async fn test_write_binary_file_overwrites_existing() {
         let temp = tempdir().unwrap();
-        let file_path = temp.path().join("overwrite.bin").to_string_lossy().to_string();
+        let file_path = temp
+            .path()
+            .join("overwrite.bin")
+            .to_string_lossy()
+            .to_string();
 
         // Write initial content
-        write_binary_file(file_path.clone(), vec![1, 2, 3]).await.unwrap();
+        write_binary_file(file_path.clone(), vec![1, 2, 3])
+            .await
+            .unwrap();
 
         // Overwrite with new content
-        write_binary_file(file_path.clone(), vec![4, 5, 6, 7, 8]).await.unwrap();
+        write_binary_file(file_path.clone(), vec![4, 5, 6, 7, 8])
+            .await
+            .unwrap();
 
         let read_data = fs::read(&file_path).unwrap();
         assert_eq!(read_data, vec![4, 5, 6, 7, 8]);
@@ -540,7 +555,11 @@ mod tests {
     #[tokio::test]
     async fn test_write_binary_file_creates_docx_like_content() {
         let temp = tempdir().unwrap();
-        let file_path = temp.path().join("document.docx").to_string_lossy().to_string();
+        let file_path = temp
+            .path()
+            .join("document.docx")
+            .to_string_lossy()
+            .to_string();
 
         // DOCX files are ZIP archives - they start with PK header
         let docx_header = vec![0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x06, 0x00];

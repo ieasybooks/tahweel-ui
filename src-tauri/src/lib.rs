@@ -2,7 +2,9 @@ mod auth;
 mod google_drive;
 mod pdf;
 
-use auth::{clear_auth_tokens, get_user_info, load_stored_tokens, refresh_access_token, start_oauth_flow};
+use auth::{
+    clear_auth_tokens, get_user_info, load_stored_tokens, refresh_access_token, start_oauth_flow,
+};
 use google_drive::{delete_google_drive_file, export_google_doc_as_text, upload_to_google_drive};
 use pdf::{cleanup_temp_dir, extract_pdf_page, get_pdf_page_count, split_pdf, write_binary_file};
 

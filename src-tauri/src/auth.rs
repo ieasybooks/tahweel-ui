@@ -217,7 +217,7 @@ fn extract_code(request_line: &str) -> Option<String> {
 async fn exchange_code_for_tokens(code: &str) -> Result<AuthTokens, String> {
     let client = reqwest::Client::new();
     let response = client
-        .post(&oauth_token_url())
+        .post(oauth_token_url())
         .form(&[
             ("code", code),
             ("client_id", CLIENT_ID),
@@ -264,7 +264,7 @@ fn store_tokens(tokens: &AuthTokens) -> Result<(), String> {
 pub async fn refresh_access_token(refresh_token: String) -> Result<AuthTokens, String> {
     let client = reqwest::Client::new();
     let response = client
-        .post(&oauth_token_url())
+        .post(oauth_token_url())
         .form(&[
             ("refresh_token", refresh_token.as_str()),
             ("client_id", CLIENT_ID),
@@ -309,11 +309,7 @@ pub async fn load_stored_tokens() -> Result<Option<AuthTokens>, String> {
         .as_secs();
 
     // Return tokens with remaining time
-    let expires_in = if stored.expires_at > now {
-        stored.expires_at - now
-    } else {
-        0
-    };
+    let expires_in = stored.expires_at.saturating_sub(now);
 
     Ok(Some(AuthTokens {
         access_token: stored.access_token,
@@ -335,7 +331,7 @@ pub async fn clear_auth_tokens() -> Result<(), String> {
 pub async fn get_user_info(access_token: String) -> Result<UserInfo, String> {
     let client = reqwest::Client::new();
     let response = client
-        .get(&userinfo_url())
+        .get(userinfo_url())
         .bearer_auth(&access_token)
         .send()
         .await
@@ -369,7 +365,9 @@ mod tests {
     impl<'a> EnvGuard<'a> {
         fn new(vars: &[&'static str]) -> Self {
             // Handle poisoned mutex - recover and continue
-            let lock = ENV_MUTEX.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let lock = ENV_MUTEX
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             // Clean vars at start to ensure clean state
             for var in vars {
                 std::env::remove_var(var);
@@ -473,14 +471,20 @@ mod tests {
         fn new() -> Self {
             // Acquire mutex first to prevent race conditions
             // Handle poisoned mutex - recover and continue
-            let lock = TOKEN_FILE_MUTEX.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            let lock = TOKEN_FILE_MUTEX
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             let path = get_token_path();
             let backup = if path.exists() {
                 fs::read_to_string(&path).ok()
             } else {
                 None
             };
-            Self { path, backup, _lock: lock }
+            Self {
+                path,
+                backup,
+                _lock: lock,
+            }
         }
     }
 
@@ -1049,7 +1053,10 @@ mod tests {
     #[test]
     fn test_userinfo_url_override() {
         let _env = EnvGuard::new(&["TAHWEEL_TEST_USERINFO_URL"]);
-        std::env::set_var("TAHWEEL_TEST_USERINFO_URL", "http://localhost:8080/userinfo");
+        std::env::set_var(
+            "TAHWEEL_TEST_USERINFO_URL",
+            "http://localhost:8080/userinfo",
+        );
         let url = userinfo_url();
         assert_eq!(url, "http://localhost:8080/userinfo");
     }

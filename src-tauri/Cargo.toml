@@ -36,6 +36,9 @@ pdfium-render = { version = "0.8", features = ["image"] }
 image = "0.25"
 rayon = "1.10"
 
+[dev-dependencies]
+mockito = "1"
+
 [profile.dev]
 incremental = true
 

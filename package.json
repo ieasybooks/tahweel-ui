@@ -11,6 +11,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "lint": "oxlint src --fix",
+    "lint:check": "oxlint src",
     "format": "oxfmt src --write",
     "format:check": "oxfmt src",
     "test": "vitest run",

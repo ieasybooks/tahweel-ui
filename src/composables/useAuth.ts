@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 import { useAuthStore } from "@/stores/auth"
+import { useToastStore } from "@/stores/toast"
 
 export interface AuthTokens {
   access_token: string
@@ -9,6 +10,7 @@ export interface AuthTokens {
 
 export function useAuth() {
   const authStore = useAuthStore()
+  const toastStore = useToastStore()
 
   async function signIn() {
     if (authStore.isAuthenticating) return
@@ -44,8 +46,9 @@ export function useAuth() {
   async function signOut() {
     try {
       await invoke("clear_auth_tokens")
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      console.error("Failed to clear auth tokens:", error)
+      toastStore.warning("toast.signOutWarning")
     }
     authStore.clearAuth()
   }
@@ -67,6 +70,7 @@ export function useAuth() {
       return true
     } catch (error) {
       console.error("Token refresh failed:", error)
+      toastStore.error("toast.sessionExpired")
       authStore.clearAuth()
       return false
     }

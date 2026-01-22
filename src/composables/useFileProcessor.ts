@@ -5,6 +5,7 @@ import { useI18n } from "vue-i18n"
 import { useProcessingStore } from "@/stores/processing"
 import { useSettingsStore } from "@/stores/settings"
 import { useAuthStore } from "@/stores/auth"
+import { useToastStore } from "@/stores/toast"
 import { usePdfProcessor, cleanupTempDir } from "./usePdfProcessor"
 import { useGoogleDriveOcr } from "./useGoogleDriveOcr"
 import { useWriters } from "./useWriters"
@@ -36,6 +37,7 @@ export function useFileProcessor() {
   const processingStore = useProcessingStore()
   const settingsStore = useSettingsStore()
   const authStore = useAuthStore()
+  const toastStore = useToastStore()
   const { splitPdf } = usePdfProcessor()
   const { extractText } = useGoogleDriveOcr()
   const { writeOutputs } = useWriters()
@@ -135,7 +137,12 @@ export function useFileProcessor() {
       processingStore.outputFolder &&
       processingStore.completedFiles > 0
     ) {
-      await invoke("open_folder", { path: processingStore.outputFolder })
+      try {
+        await invoke("open_folder", { path: processingStore.outputFolder })
+      } catch (error) {
+        console.error("Failed to open folder:", error)
+        toastStore.warning("toast.openFolderFailed")
+      }
     }
   }
 

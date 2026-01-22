@@ -5,6 +5,7 @@ export const messages = {
       subtitle: "حوّل الملفات من صيغة PDF إلى TXT و DOCX",
       note: "ملاحظة: يدعم تحويل الملفات بصيغة PDF أو صورة (JPG و JPEG و PNG) فقط.",
       windowTitle: "تحويل - تحويل PDF إلى نص",
+      logoAlt: "شعار تحويل",
     },
     buttons: {
       convertFile: "تحويل ملف واحد",
@@ -15,6 +16,9 @@ export const messages = {
       openFolder: "فتح المجلد",
       cancel: "إلغاء",
       newConversion: "تحويل جديد",
+      languageSelector: "اختر اللغة",
+      conversionOptions: "خيارات التحويل",
+      completionActions: "إجراءات ما بعد الانتهاء",
     },
     progress: {
       global: "التقدم العام:",
@@ -25,6 +29,7 @@ export const messages = {
       writing: "جارٍ كتابة الملف...",
       done: "انتهى",
       cancelling: "جارٍ الإلغاء...",
+      progressRegion: "تقدم التحويل",
     },
     messages: {
       successTitle: "اكتمل التحويل",
@@ -35,6 +40,7 @@ export const messages = {
       conversionComplete: "انتهى تحويل {count} ملف بنجاح.",
       conversionCompleteOne: "انتهى تحويل ملف واحد بنجاح.",
       conversionCompleteTwo: "انتهى تحويل ملفين بنجاح.",
+      errorList: "قائمة الأخطاء",
     },
     settings: {
       title: "الإعدادات",
@@ -50,10 +56,22 @@ export const messages = {
     auth: {
       signedIn: "تم تسجيل الدخول إلى Google Drive",
       notSignedIn: "لم يتم تسجيل الدخول",
+      statusLabel: "حالة تسجيل الدخول",
+      statusConnected: "متصل",
+      statusDisconnected: "غير متصل",
+      signingIn: "جارٍ تسجيل الدخول...",
     },
     dropzone: {
       dropHere: "أفلت الملفات هنا",
       supportedFormats: "PDF, JPG, JPEG, PNG",
+    },
+    toast: {
+      close: "إغلاق",
+      notifications: "الإشعارات",
+      signOutWarning: "تعذر مسح بيانات الجلسة المحلية",
+      sessionExpired: "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+      ocrPartialErrors: "فشل استخراج النص من {count} صفحة/صفحات",
+      openFolderFailed: "تعذر فتح المجلد",
     },
   },
   en: {
@@ -62,6 +80,7 @@ export const messages = {
       subtitle: "Convert PDF files to TXT and DOCX",
       note: "Note: Tahweel supports PDF or image files (JPG, JPEG, and PNG) only.",
       windowTitle: "Tahweel - PDF to Text",
+      logoAlt: "Tahweel logo",
     },
     buttons: {
       convertFile: "Convert a Single File",
@@ -72,6 +91,9 @@ export const messages = {
       openFolder: "Open Folder",
       cancel: "Cancel",
       newConversion: "New Conversion",
+      languageSelector: "Select language",
+      conversionOptions: "Conversion options",
+      completionActions: "Completion actions",
     },
     progress: {
       global: "Progress:",
@@ -82,6 +104,7 @@ export const messages = {
       writing: "Writing file...",
       done: "Done",
       cancelling: "Cancelling...",
+      progressRegion: "Conversion progress",
     },
     messages: {
       successTitle: "Conversion Complete",
@@ -92,6 +115,7 @@ export const messages = {
       conversionComplete: "Finished converting {count} file(s) successfully.",
       conversionCompleteOne: "Finished converting 1 file successfully.",
       conversionCompleteTwo: "Finished converting 2 files successfully.",
+      errorList: "Error list",
     },
     settings: {
       title: "Settings",
@@ -107,10 +131,22 @@ export const messages = {
     auth: {
       signedIn: "Signed in to Google Drive",
       notSignedIn: "Not signed in",
+      statusLabel: "Sign in status",
+      statusConnected: "Connected",
+      statusDisconnected: "Disconnected",
+      signingIn: "Signing in...",
     },
     dropzone: {
       dropHere: "Drop files here",
       supportedFormats: "PDF, JPG, JPEG, PNG",
+    },
+    toast: {
+      close: "Close",
+      notifications: "Notifications",
+      signOutWarning: "Could not clear local session data",
+      sessionExpired: "Session expired. Please sign in again.",
+      ocrPartialErrors: "Failed to extract text from {count} page(s)",
+      openFolderFailed: "Could not open folder",
     },
   },
 }

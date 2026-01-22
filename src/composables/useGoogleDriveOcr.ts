@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 import { useProcessingStore } from "@/stores/processing"
+import { useToastStore } from "@/stores/toast"
 import { useAuth } from "./useAuth"
 import pLimit from "p-limit"
 
@@ -34,6 +35,7 @@ interface ExportResult {
 
 export function useGoogleDriveOcr() {
   const processingStore = useProcessingStore()
+  const toastStore = useToastStore()
   const { ensureValidToken } = useAuth()
 
   /**
@@ -199,9 +201,10 @@ export function useGoogleDriveOcr() {
       throw error
     }
 
-    // If we have errors but not cancelled, log them but return what we have
+    // If we have errors but not cancelled, notify user and log them
     if (errors.length > 0 && !processingStore.isCancelled) {
       console.warn(`OCR completed with ${errors.length} errors:`, errors)
+      toastStore.warning("toast.ocrPartialErrors", { count: errors.length })
     }
 
     // Return results, using empty string for any null values

@@ -14,6 +14,7 @@ import SettingsPanel from "./components/SettingsPanel.vue";
 import AuthStatus from "./components/AuthStatus.vue";
 import LanguageDropdown from "./components/LanguageDropdown.vue";
 import DropZone from "./components/DropZone.vue";
+import ToastContainer from "./components/ToastContainer.vue";
 import { useFileProcessor } from "./composables/useFileProcessor";
 import { dirname } from "@tauri-apps/api/path";
 
@@ -62,6 +63,9 @@ watch(locale, async (newLocale) => {
     class="h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-3 relative"
     :class="{ 'font-arabic': isRtl, 'font-english': !isRtl }"
   >
+    <!-- Toast Notifications -->
+    <ToastContainer />
+
     <!-- Drop Zone Overlay -->
     <DropZone @files-dropped="handleFilesDropped" />
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { setActivePinia, createPinia } from "pinia"
+import type { OutputFormat } from "@/stores/settings"
 
 // Mock localStorage for settings store
 const localStorageMock = {
@@ -388,7 +389,7 @@ describe("useFileProcessor", () => {
 
     it("writes output in configured formats", async () => {
       const settings = useSettingsStore()
-      settings.formats = ["txt", "json"] as ("txt" | "docx" | "json")[]
+      settings.formats = (["txt", "json"] as OutputFormat[])
 
       const { processFiles } = useFileProcessor()
       await processFiles(["/path/to/image.png"], "/output")
@@ -408,7 +409,7 @@ describe("useFileProcessor", () => {
       setupFullProcessingMocks({ pageCount: 3 })
       // Use only txt format to avoid docx Blob issues in jsdom
       const settings = useSettingsStore()
-      settings.formats = ["txt"] as ("txt" | "docx" | "json")[]
+      settings.formats = (["txt"] as OutputFormat[])
     })
 
     it("splits PDF into pages before OCR", async () => {
@@ -453,7 +454,7 @@ describe("useFileProcessor", () => {
       setupAuthenticated()
       // Use only txt format to avoid docx Blob issues in jsdom
       const settings = useSettingsStore()
-      settings.formats = ["txt"] as ("txt" | "docx" | "json")[]
+      settings.formats = (["txt"] as OutputFormat[])
     })
 
     it("continues processing when individual image OCR fails gracefully", async () => {

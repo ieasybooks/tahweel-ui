@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import type { OutputFormat } from "@/stores/settings"
 
 // Mock Tauri APIs before importing useWriters
 vi.mock("@tauri-apps/plugin-fs", () => ({
@@ -176,7 +177,7 @@ describe("useWriters", () => {
       const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
-      await writeOutputs(texts, "/output/test", ["txt"] as ("txt" | "docx" | "json")[], {})
+      await writeOutputs(texts, "/output/test", ["txt"] as OutputFormat[], {})
 
       expect(writeTextFile).toHaveBeenCalledTimes(1)
       expect(writeTextFile).toHaveBeenCalledWith("/output/test.txt", "Content")
@@ -186,7 +187,12 @@ describe("useWriters", () => {
       const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
-      await writeOutputs(texts, "/output/test", ["txt", "json"] as ("txt" | "docx" | "json")[], {})
+      await writeOutputs(
+        texts,
+        "/output/test",
+        ["txt", "json"] as OutputFormat[],
+        {},
+      )
 
       expect(writeTextFile).toHaveBeenCalledTimes(2)
     })

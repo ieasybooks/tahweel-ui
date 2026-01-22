@@ -9,9 +9,19 @@ export interface OcrProgress {
   percentage: number
 }
 
+export interface OcrError {
+  index: number
+  error: string
+}
+
 export interface OcrResult {
   texts: string[]
-  errors: { index: number; error: string }[]
+  errors: OcrError[]
+}
+
+export interface ExtractedText {
+  text: string
+  fileId: string
 }
 
 interface UploadResult {
@@ -101,9 +111,7 @@ export function useGoogleDriveOcr() {
    * Extract text from a single image using Google Drive OCR
    * Returns the fileId along with text so it can be cleaned up if needed
    */
-  async function extractSingleText(
-    imagePath: string,
-  ): Promise<{ text: string; fileId: string }> {
+  async function extractSingleText(imagePath: string): Promise<ExtractedText> {
     const fileId = await uploadFile(imagePath)
     const text = await exportAsText(fileId)
     return { text, fileId }
@@ -119,12 +127,12 @@ export function useGoogleDriveOcr() {
     onProgress?: (progress: OcrProgress) => void,
   ): Promise<string[]> {
     const limit = pLimit(concurrency)
-    const results: (string | null)[] = Array.from(
+    const results: Array<string | null> = Array.from(
       { length: imagePaths.length },
       () => null,
     )
     const uploadedFileIds: string[] = []
-    const errors: { index: number; error: string }[] = []
+    const errors: OcrError[] = []
     let completed = 0
 
     const tasks = imagePaths.map((path, index) =>

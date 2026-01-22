@@ -1,9 +1,11 @@
 import { defineStore } from "pinia"
 import { ref, watch } from "vue"
 
+export type OutputFormat = "txt" | "docx" | "json"
+
 export interface Settings {
   dpi: number
-  formats: ("txt" | "docx" | "json")[]
+  formats: OutputFormat[]
   ocrConcurrency: number
   pageSeparator: string
   outputDirectory: string | null
@@ -23,7 +25,7 @@ function clamp(value: number, min: number, max: number): number {
 
 export const useSettingsStore = defineStore("settings", () => {
   const dpi = ref(150)
-  const formats = ref<("txt" | "docx" | "json")[]>(["txt", "docx"])
+  const formats = ref<OutputFormat[]>(["txt", "docx"])
   const ocrConcurrency = ref(12)
   const pageSeparator = ref("\n\nPAGE_SEPARATOR\n\n")
   const outputDirectory = ref<string | null>(null)
@@ -85,7 +87,7 @@ export const useSettingsStore = defineStore("settings", () => {
   // Load on init
   loadSettings()
 
-  function toggleFormat(format: "txt" | "docx" | "json") {
+  function toggleFormat(format: OutputFormat) {
     const index = formats.value.indexOf(format)
     if (index === -1) {
       formats.value.push(format)

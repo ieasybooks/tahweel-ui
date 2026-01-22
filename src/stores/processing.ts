@@ -3,6 +3,11 @@ import { ref, computed } from "vue"
 
 export type ProcessingStage = "preparing" | "splitting" | "ocr" | "writing" | "done"
 
+export interface ProcessingError {
+  file: string
+  error: string
+}
+
 export interface FileProgress {
   filePath: string
   fileName: string
@@ -18,7 +23,7 @@ export interface ProcessingState {
   currentFile: FileProgress | null
   completedFiles: number
   totalFiles: number
-  errors: { file: string; error: string }[]
+  errors: ProcessingError[]
 }
 
 export const useProcessingStore = defineStore("processing", () => {
@@ -29,7 +34,7 @@ export const useProcessingStore = defineStore("processing", () => {
   const currentFile = ref<FileProgress | null>(null)
   const completedFiles = ref(0)
   const totalFiles = ref(0)
-  const errors = ref<{ file: string; error: string }[]>([])
+  const errors = ref<ProcessingError[]>([])
   const lastCompleted = ref(false)
   const outputFolder = ref<string | null>(null)
 

@@ -126,7 +126,7 @@ describe("usePdfProcessor", () => {
       let progressCallback: (event: any) => void = () => {}
 
       vi.mocked(listen).mockImplementation(async (_event, callback) => {
-        progressCallback = callback as typeof progressCallback
+        progressCallback = (callback as typeof progressCallback)
         return () => {}
       })
 

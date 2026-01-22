@@ -1,6 +1,7 @@
 import { writeTextFile } from "@tauri-apps/plugin-fs"
 import { Document, Packer, Paragraph, TextRun, PageBreak } from "docx"
 import { invoke } from "@tauri-apps/api/core"
+import type { OutputFormat } from "@/stores/settings"
 
 export interface WriterOptions {
   pageSeparator?: string
@@ -117,7 +118,7 @@ export function useWriters() {
       const isLastPage = i === texts.length - 1
 
       // Build children: TextRuns with line breaks, then PageBreak at the end (except last page)
-      const paragraphChildren: (TextRun | PageBreak)[] = []
+      const paragraphChildren: Array<TextRun | PageBreak> = []
 
       lines.forEach((line, lineIndex) => {
         paragraphChildren.push(
@@ -178,7 +179,7 @@ export function useWriters() {
   async function writeOutputs(
     texts: string[],
     outputBasePath: string,
-    formats: ("txt" | "docx" | "json")[],
+    formats: OutputFormat[],
     options: WriterOptions = {},
   ): Promise<void> {
     const promises: Promise<void>[] = []

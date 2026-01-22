@@ -57,6 +57,9 @@ onUnmounted(() => {
     <div
       v-if="isDragging"
       class="fixed inset-0 z-50 bg-green-500/20 backdrop-blur-sm flex items-center justify-center"
+      role="region"
+      :aria-label="$t('dropzone.dropHere')"
+      aria-live="polite"
     >
       <div class="bg-white rounded-2xl shadow-2xl p-8 m-8 border-4 border-dashed border-green-500">
         <div class="text-center space-y-4">
@@ -65,6 +68,7 @@ onUnmounted(() => {
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"

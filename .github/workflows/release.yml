@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  release:
+    types: [published]
 
 jobs:
   version:
@@ -20,7 +19,7 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${{ github.event.release.tag_name }}"
           VERSION="${TAG#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
@@ -186,48 +185,10 @@ jobs:
       - name: List artifacts
         run: find ./artifacts -type f | head -50
 
-      - name: Generate release notes
-        id: notes
-        run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v' | grep -v "^v${VERSION}$" | head -n 1)
-
-          if [ -n "$PREV_TAG" ]; then
-            echo "Generating changelog from $PREV_TAG to v$VERSION"
-            {
-              echo "## What's Changed"
-              echo ""
-              git log --pretty=format:"* %s (%h)" "$PREV_TAG"..HEAD
-              echo ""
-            } > release_notes.md
-          else
-            cat > release_notes.md <<EOF
-          ## Tahweel v${VERSION}
-
-          PDF to text OCR application using Google Drive API.
-
-          ### Downloads
-
-          | Platform | Architecture | Download |
-          |----------|--------------|----------|
-          | macOS | Universal (Apple Silicon + Intel) | \`.dmg\` |
-          | Windows | x64 | \`.msi\` or \`.exe\` |
-          | Linux | x64 | \`.AppImage\` or \`.deb\` |
-
-          ### Features
-          - PDF to text OCR using Google Drive API
-          - Support for Arabic/RTL text
-          - Multiple output formats: TXT, DOCX, JSON
-          - Self-contained app (no external dependencies)
-          EOF
-          fi
-
-          cat release_notes.md
-
-      - name: Create GitHub Release
+      - name: Upload artifacts to release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ github.event.release.tag_name }}
         run: |
           # Find all artifact files
           FILES=$(find ./artifacts -type f \( -name "*.dmg" -o -name "*.msi" -o -name "*.exe" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.app.tar.gz" \))
@@ -237,11 +198,8 @@ jobs:
             exit 1
           fi
 
-          echo "Creating release v$VERSION with files:"
+          echo "Uploading artifacts to release $TAG:"
           echo "$FILES"
 
-          # Create release with files
-          gh release create "v$VERSION" \
-            --title "Tahweel v$VERSION" \
-            --notes-file release_notes.md \
-            $FILES
+          # Upload files to existing release
+          gh release upload "$TAG" $FILES --clobber

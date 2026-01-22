@@ -244,14 +244,15 @@ async fn exchange_code_for_tokens(code: &str) -> Result<AuthTokens, String> {
 }
 
 fn store_tokens(tokens: &AuthTokens) -> Result<(), String> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| format!("System time error: {}", e))?
+        .as_secs();
+
     let stored = StoredTokens {
         access_token: tokens.access_token.clone(),
         refresh_token: tokens.refresh_token.clone(),
-        expires_at: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            + tokens.expires_in,
+        expires_at: now + tokens.expires_in,
     };
 
     let json = serde_json::to_string_pretty(&stored).map_err(|e| e.to_string())?;
@@ -305,7 +306,7 @@ pub async fn load_stored_tokens() -> Result<Option<AuthTokens>, String> {
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
+        .map_err(|e| format!("System time error: {}", e))?
         .as_secs();
 
     // Return tokens with remaining time

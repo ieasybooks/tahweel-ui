@@ -1,44 +1,44 @@
-import { open, message } from "@tauri-apps/plugin-dialog";
-import { readDir } from "@tauri-apps/plugin-fs";
-import { invoke } from "@tauri-apps/api/core";
-import { useI18n } from "vue-i18n";
-import { useProcessingStore } from "@/stores/processing";
-import { useSettingsStore } from "@/stores/settings";
-import { useAuthStore } from "@/stores/auth";
-import { usePdfProcessor, cleanupTempDir } from "./usePdfProcessor";
-import { useGoogleDriveOcr } from "./useGoogleDriveOcr";
-import { useWriters } from "./useWriters";
-import { dirname, basename, join } from "@tauri-apps/api/path";
+import { open, message } from "@tauri-apps/plugin-dialog"
+import { readDir } from "@tauri-apps/plugin-fs"
+import { invoke } from "@tauri-apps/api/core"
+import { useI18n } from "vue-i18n"
+import { useProcessingStore } from "@/stores/processing"
+import { useSettingsStore } from "@/stores/settings"
+import { useAuthStore } from "@/stores/auth"
+import { usePdfProcessor, cleanupTempDir } from "./usePdfProcessor"
+import { useGoogleDriveOcr } from "./useGoogleDriveOcr"
+import { useWriters } from "./useWriters"
+import { dirname, basename, join } from "@tauri-apps/api/path"
 
-const SUPPORTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
+const SUPPORTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"]
 
 /**
  * Get file extension from filename, handling edge cases
  */
 function getFileExtension(filename: string): string | null {
-  const lastDot = filename.lastIndexOf(".");
+  const lastDot = filename.lastIndexOf(".")
   if (lastDot === -1 || lastDot === 0 || lastDot === filename.length - 1) {
-    return null; // No extension, hidden file, or trailing dot
+    return null // No extension, hidden file, or trailing dot
   }
-  return filename.slice(lastDot).toLowerCase();
+  return filename.slice(lastDot).toLowerCase()
 }
 
 /**
  * Check if a file has a supported extension
  */
 function isSupportedFile(filename: string): boolean {
-  const ext = getFileExtension(filename);
-  return ext !== null && SUPPORTED_EXTENSIONS.includes(ext);
+  const ext = getFileExtension(filename)
+  return ext !== null && SUPPORTED_EXTENSIONS.includes(ext)
 }
 
 export function useFileProcessor() {
-  const { t } = useI18n();
-  const processingStore = useProcessingStore();
-  const settingsStore = useSettingsStore();
-  const authStore = useAuthStore();
-  const { splitPdf } = usePdfProcessor();
-  const { extractText } = useGoogleDriveOcr();
-  const { writeOutputs } = useWriters();
+  const { t } = useI18n()
+  const processingStore = useProcessingStore()
+  const settingsStore = useSettingsStore()
+  const authStore = useAuthStore()
+  const { splitPdf } = usePdfProcessor()
+  const { extractText } = useGoogleDriveOcr()
+  const { writeOutputs } = useWriters()
 
   async function selectFile() {
     const selected = await open({
@@ -49,12 +49,12 @@ export function useFileProcessor() {
           extensions: ["pdf", "jpg", "jpeg", "png"],
         },
       ],
-    });
+    })
 
     if (selected) {
-      const inputDir = await dirname(selected);
-      const outputDir = settingsStore.outputDirectory ?? inputDir;
-      await processFiles([selected], outputDir);
+      const inputDir = await dirname(selected)
+      const outputDir = settingsStore.outputDirectory ?? inputDir
+      await processFiles([selected], outputDir)
     }
   }
 
@@ -62,39 +62,39 @@ export function useFileProcessor() {
     const selected = await open({
       directory: true,
       multiple: false,
-    });
+    })
 
     if (selected) {
-      const files = await collectFiles(selected);
+      const files = await collectFiles(selected)
       if (files.length === 0) {
         await message(t("messages.noFiles"), {
           title: t("messages.errorTitle"),
           kind: "error",
-        });
-        return;
+        })
+        return
       }
-      const outputDir = settingsStore.outputDirectory ?? selected;
-      await processFiles(files, outputDir);
+      const outputDir = settingsStore.outputDirectory ?? selected
+      await processFiles(files, outputDir)
     }
   }
 
   async function collectFiles(folderPath: string): Promise<string[]> {
-    const files: string[] = [];
+    const files: string[] = []
 
     async function scanDir(dir: string) {
-      const entries = await readDir(dir);
+      const entries = await readDir(dir)
       for (const entry of entries) {
-        const fullPath = await join(dir, entry.name);
+        const fullPath = await join(dir, entry.name)
         if (entry.isDirectory) {
-          await scanDir(fullPath);
+          await scanDir(fullPath)
         } else if (entry.isFile && isSupportedFile(entry.name)) {
-          files.push(fullPath);
+          files.push(fullPath)
         }
       }
     }
 
-    await scanDir(folderPath);
-    return files.sort();
+    await scanDir(folderPath)
+    return files.sort()
   }
 
   async function processFiles(filePaths: string[], outputDir: string) {
@@ -102,47 +102,51 @@ export function useFileProcessor() {
       await message(t("messages.authRequired"), {
         title: t("messages.errorTitle"),
         kind: "error",
-      });
-      return;
+      })
+      return
     }
 
-    processingStore.startProcessing(filePaths, outputDir);
+    processingStore.startProcessing(filePaths, outputDir)
 
     for (const filePath of filePaths) {
       // Check for cancellation before processing each file
       if (processingStore.isCancelled) {
-        break;
+        break
       }
 
       try {
-        await processFile(filePath, outputDir);
-        processingStore.completeFile();
+        await processFile(filePath, outputDir)
+        processingStore.completeFile()
       } catch (error) {
-        const errorMessage = String(error);
+        const errorMessage = String(error)
         if (errorMessage.includes("cancelled")) {
-          break; // Stop processing on cancellation
+          break // Stop processing on cancellation
         }
-        processingStore.addError(filePath, errorMessage);
-        processingStore.completeFile();
+        processingStore.addError(filePath, errorMessage)
+        processingStore.completeFile()
       }
     }
 
-    processingStore.finishProcessing();
+    processingStore.finishProcessing()
 
     // Auto-open output folder after conversion (only if not cancelled and has output)
-    if (!processingStore.isCancelled && processingStore.outputFolder && processingStore.completedFiles > 0) {
-      await invoke("open_folder", { path: processingStore.outputFolder });
+    if (
+      !processingStore.isCancelled &&
+      processingStore.outputFolder &&
+      processingStore.completedFiles > 0
+    ) {
+      await invoke("open_folder", { path: processingStore.outputFolder })
     }
   }
 
   async function processFile(filePath: string, baseOutputDir: string) {
-    const fileName = await basename(filePath);
-    const ext = getFileExtension(fileName) || "";
-    const nameWithoutExt = fileName.replace(/\.[^.]+$/, "");
+    const fileName = await basename(filePath)
+    const ext = getFileExtension(fileName) || ""
+    const nameWithoutExt = fileName.replace(/\.[^.]+$/, "")
 
     // Check for cancellation
     if (processingStore.isCancelled) {
-      throw new Error("Processing cancelled");
+      throw new Error("Processing cancelled")
     }
 
     // Update progress
@@ -153,15 +157,15 @@ export function useFileProcessor() {
       currentPage: 0,
       totalPages: 0,
       percentage: 0,
-    });
+    })
 
-    let imagePaths: string[];
-    let tempDir: string | null = null;
+    let imagePaths: string[]
+    let tempDir: string | null = null
 
     if (ext === ".pdf") {
       // Check for cancellation before PDF split
       if (processingStore.isCancelled) {
-        throw new Error("Processing cancelled");
+        throw new Error("Processing cancelled")
       }
 
       // Split PDF into images
@@ -172,7 +176,7 @@ export function useFileProcessor() {
         currentPage: 0,
         totalPages: 0,
         percentage: 0,
-      });
+      })
 
       const result = await splitPdf(filePath, settingsStore.dpi, (progress) => {
         processingStore.updateFileProgress({
@@ -182,14 +186,14 @@ export function useFileProcessor() {
           currentPage: progress.currentPage,
           totalPages: progress.totalPages,
           percentage: progress.percentage,
-        });
-      });
+        })
+      })
 
-      imagePaths = result.imagePaths;
-      tempDir = result.tempDir;
+      imagePaths = result.imagePaths
+      tempDir = result.tempDir
     } else {
       // Single image
-      imagePaths = [filePath];
+      imagePaths = [filePath]
     }
 
     // Check for cancellation before OCR
@@ -197,12 +201,12 @@ export function useFileProcessor() {
       // Clean up temp directory if we created one
       if (tempDir) {
         try {
-          await cleanupTempDir(tempDir);
+          await cleanupTempDir(tempDir)
         } catch {
           // Ignore cleanup errors
         }
       }
-      throw new Error("Processing cancelled");
+      throw new Error("Processing cancelled")
     }
 
     // OCR all images
@@ -213,42 +217,46 @@ export function useFileProcessor() {
       currentPage: 0,
       totalPages: imagePaths.length,
       percentage: 0,
-    });
+    })
 
-    let texts: string[];
+    let texts: string[]
     try {
-      texts = await extractText(imagePaths, settingsStore.ocrConcurrency, (progress) => {
-        processingStore.updateFileProgress({
-          filePath,
-          fileName,
-          stage: "ocr",
-          currentPage: progress.completed,
-          totalPages: progress.total,
-          percentage: progress.percentage,
-        });
-      });
+      texts = await extractText(
+        imagePaths,
+        settingsStore.ocrConcurrency,
+        (progress) => {
+          processingStore.updateFileProgress({
+            filePath,
+            fileName,
+            stage: "ocr",
+            currentPage: progress.completed,
+            totalPages: progress.total,
+            percentage: progress.percentage,
+          })
+        },
+      )
     } catch (error) {
       // Clean up temp directory on error
       if (tempDir) {
         try {
-          await cleanupTempDir(tempDir);
+          await cleanupTempDir(tempDir)
         } catch {
           // Ignore cleanup errors
         }
       }
-      throw error;
+      throw error
     }
 
     // Check for cancellation before writing
     if (processingStore.isCancelled) {
       if (tempDir) {
         try {
-          await cleanupTempDir(tempDir);
+          await cleanupTempDir(tempDir)
         } catch {
           // Ignore cleanup errors
         }
       }
-      throw new Error("Processing cancelled");
+      throw new Error("Processing cancelled")
     }
 
     // Write outputs
@@ -259,17 +267,17 @@ export function useFileProcessor() {
       currentPage: 0,
       totalPages: 0,
       percentage: 90,
-    });
+    })
 
-    const outputBasePath = await join(baseOutputDir, nameWithoutExt);
+    const outputBasePath = await join(baseOutputDir, nameWithoutExt)
     await writeOutputs(texts, outputBasePath, settingsStore.formats, {
       pageSeparator: settingsStore.pageSeparator,
-    });
+    })
 
     // Cleanup temp directory
     if (tempDir) {
       try {
-        await cleanupTempDir(tempDir);
+        await cleanupTempDir(tempDir)
       } catch {
         // Ignore cleanup errors
       }
@@ -282,11 +290,11 @@ export function useFileProcessor() {
       currentPage: imagePaths.length,
       totalPages: imagePaths.length,
       percentage: 100,
-    });
+    })
   }
 
   function cancelProcessing() {
-    processingStore.cancelProcessing();
+    processingStore.cancelProcessing()
   }
 
   return {
@@ -295,5 +303,5 @@ export function useFileProcessor() {
     processFiles,
     collectFiles,
     cancelProcessing,
-  };
+  }
 }

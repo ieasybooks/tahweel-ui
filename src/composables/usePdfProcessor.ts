@@ -1,22 +1,22 @@
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core"
+import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 
 export interface SplitProgress {
-  currentPage: number;
-  totalPages: number;
-  percentage: number;
+  currentPage: number
+  totalPages: number
+  percentage: number
 }
 
 export interface SplitResult {
-  imagePaths: string[];
-  tempDir: string;
+  imagePaths: string[]
+  tempDir: string
 }
 
 /**
  * Cleanup a temporary directory
  */
 export async function cleanupTempDir(path: string): Promise<void> {
-  await invoke("cleanup_temp_dir", { path });
+  await invoke("cleanup_temp_dir", { path })
 }
 
 export function usePdfProcessor() {
@@ -24,7 +24,7 @@ export function usePdfProcessor() {
    * Get the total number of pages in a PDF file
    */
   async function getPageCount(pdfPath: string): Promise<number> {
-    return await invoke<number>("get_pdf_page_count", { pdfPath });
+    return await invoke<number>("get_pdf_page_count", { pdfPath })
   }
 
   /**
@@ -33,17 +33,17 @@ export function usePdfProcessor() {
   async function splitPdf(
     pdfPath: string,
     dpi: number,
-    onProgress?: (progress: SplitProgress) => void
+    onProgress?: (progress: SplitProgress) => void,
   ): Promise<SplitResult> {
     // Get total pages first
-    const totalPages = await getPageCount(pdfPath);
+    const totalPages = await getPageCount(pdfPath)
 
     // Set up event listener for progress updates
-    let unlisten: UnlistenFn | null = null;
+    let unlisten: UnlistenFn | null = null
     if (onProgress) {
       unlisten = await listen<SplitProgress>("split-progress", (event) => {
-        onProgress(event.payload);
-      });
+        onProgress(event.payload)
+      })
     }
 
     try {
@@ -52,13 +52,13 @@ export function usePdfProcessor() {
         pdfPath,
         dpi,
         totalPages,
-      });
+      })
 
-      return result;
+      return result
     } finally {
       // Clean up the event listener
       if (unlisten) {
-        unlisten();
+        unlisten()
       }
     }
   }
@@ -70,19 +70,19 @@ export function usePdfProcessor() {
     pdfPath: string,
     pageNumber: number,
     dpi: number,
-    outputPath: string
+    outputPath: string,
   ): Promise<string> {
     return await invoke<string>("extract_pdf_page", {
       pdfPath,
       pageNumber,
       dpi,
       outputPath,
-    });
+    })
   }
 
   return {
     getPageCount,
     splitPdf,
     extractPage,
-  };
+  }
 }

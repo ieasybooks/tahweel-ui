@@ -113,6 +113,6 @@ export const messages = {
       supportedFormats: "PDF, JPG, JPEG, PNG",
     },
   },
-};
+}
 
-export type MessageSchema = typeof messages.en;
+export type MessageSchema = typeof messages.en

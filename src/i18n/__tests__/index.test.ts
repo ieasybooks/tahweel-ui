@@ -15,7 +15,7 @@ describe("i18n messages", () => {
     })
 
     it("all sections have matching keys between locales", () => {
-      const sections = Object.keys(messages.en) as keyof MessageSchema[]
+      const sections = Object.keys(messages.en) as (keyof MessageSchema)[]
 
       for (const section of sections) {
         const arSection = messages.ar[section]

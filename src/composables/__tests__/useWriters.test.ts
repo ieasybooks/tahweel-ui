@@ -176,7 +176,7 @@ describe("useWriters", () => {
       const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
-      await writeOutputs(texts, "/output/test", ["txt"], {})
+      await writeOutputs(texts, "/output/test", ["txt"] as ("txt" | "docx" | "json")[], {})
 
       expect(writeTextFile).toHaveBeenCalledTimes(1)
       expect(writeTextFile).toHaveBeenCalledWith("/output/test.txt", "Content")
@@ -186,7 +186,7 @@ describe("useWriters", () => {
       const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
-      await writeOutputs(texts, "/output/test", ["txt", "json"], {})
+      await writeOutputs(texts, "/output/test", ["txt", "json"] as ("txt" | "docx" | "json")[], {})
 
       expect(writeTextFile).toHaveBeenCalledTimes(2)
     })

@@ -122,10 +122,11 @@ describe("usePdfProcessor", () => {
     })
 
     it("calls progress callback with event payload", async () => {
-      let progressCallback: (event: { payload: unknown }) => void = () => {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let progressCallback: (event: any) => void = () => {}
 
       vi.mocked(listen).mockImplementation(async (_event, callback) => {
-        progressCallback = callback
+        progressCallback = callback as typeof progressCallback
         return () => {}
       })
 

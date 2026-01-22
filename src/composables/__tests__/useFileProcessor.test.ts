@@ -178,8 +178,9 @@ describe("useFileProcessor", () => {
     })
 
     it("recursively scans subdirectories", async () => {
-      vi.mocked(readDir).mockImplementation(async (dir: string) => {
-        if (dir === "/folder") {
+      vi.mocked(readDir).mockImplementation(async (dir) => {
+        const dirStr = String(dir)
+        if (dirStr === "/folder") {
           return [
             { name: "sub", isFile: false, isDirectory: true, isSymlink: false },
             {
@@ -190,7 +191,7 @@ describe("useFileProcessor", () => {
             },
           ]
         }
-        if (dir === "/folder/sub") {
+        if (dirStr === "/folder/sub") {
           return [
             {
               name: "nested.png",
@@ -296,7 +297,7 @@ describe("useFileProcessor", () => {
 
     it("shows auth error when not authenticated", async () => {
       vi.mocked(open).mockResolvedValue("/path/to/image.png")
-      vi.mocked(message).mockResolvedValue(undefined)
+      vi.mocked(message).mockResolvedValue("Ok")
 
       const { selectFile } = useFileProcessor()
       await selectFile()
@@ -338,7 +339,7 @@ describe("useFileProcessor", () => {
           isSymlink: false,
         },
       ])
-      vi.mocked(message).mockResolvedValue(undefined)
+      vi.mocked(message).mockResolvedValue("Ok")
 
       const { selectFolder } = useFileProcessor()
       await selectFolder()
@@ -387,14 +388,14 @@ describe("useFileProcessor", () => {
 
     it("writes output in configured formats", async () => {
       const settings = useSettingsStore()
-      settings.formats = ["txt", "json"]
+      settings.formats = ["txt", "json"] as ("txt" | "docx" | "json")[]
 
       const { processFiles } = useFileProcessor()
       await processFiles(["/path/to/image.png"], "/output")
 
       // Should have written txt and json files
       const writeTextFileCalls = vi.mocked(writeTextFile).mock.calls
-      const writtenPaths = writeTextFileCalls.map((call) => call[0])
+      const writtenPaths = writeTextFileCalls.map((call) => String(call[0]))
 
       expect(writtenPaths.some((p) => p.endsWith(".txt"))).toBe(true)
       expect(writtenPaths.some((p) => p.endsWith(".json"))).toBe(true)
@@ -407,7 +408,7 @@ describe("useFileProcessor", () => {
       setupFullProcessingMocks({ pageCount: 3 })
       // Use only txt format to avoid docx Blob issues in jsdom
       const settings = useSettingsStore()
-      settings.formats = ["txt"]
+      settings.formats = ["txt"] as ("txt" | "docx" | "json")[]
     })
 
     it("splits PDF into pages before OCR", async () => {
@@ -452,7 +453,7 @@ describe("useFileProcessor", () => {
       setupAuthenticated()
       // Use only txt format to avoid docx Blob issues in jsdom
       const settings = useSettingsStore()
-      settings.formats = ["txt"]
+      settings.formats = ["txt"] as ("txt" | "docx" | "json")[]
     })
 
     it("continues processing when individual image OCR fails gracefully", async () => {

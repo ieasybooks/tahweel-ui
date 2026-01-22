@@ -3,7 +3,7 @@ import { ref, watch } from "vue"
 
 export interface Settings {
   dpi: number
-  formats: "txt" | "docx" | "json"[]
+  formats: ("txt" | "docx" | "json")[]
   ocrConcurrency: number
   pageSeparator: string
   outputDirectory: string | null
@@ -23,7 +23,7 @@ function clamp(value: number, min: number, max: number): number {
 
 export const useSettingsStore = defineStore("settings", () => {
   const dpi = ref(150)
-  const formats = ref<"txt" | "docx" | "json"[]>(["txt", "docx"])
+  const formats = ref<("txt" | "docx" | "json")[]>(["txt", "docx"])
   const ocrConcurrency = ref(12)
   const pageSeparator = ref("\n\nPAGE_SEPARATOR\n\n")
   const outputDirectory = ref<string | null>(null)

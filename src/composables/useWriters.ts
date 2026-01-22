@@ -117,7 +117,7 @@ export function useWriters() {
       const isLastPage = i === texts.length - 1
 
       // Build children: TextRuns with line breaks, then PageBreak at the end (except last page)
-      const paragraphChildren: TextRun | PageBreak[] = []
+      const paragraphChildren: (TextRun | PageBreak)[] = []
 
       lines.forEach((line, lineIndex) => {
         paragraphChildren.push(
@@ -178,7 +178,7 @@ export function useWriters() {
   async function writeOutputs(
     texts: string[],
     outputBasePath: string,
-    formats: "txt" | "docx" | "json"[],
+    formats: ("txt" | "docx" | "json")[],
     options: WriterOptions = {},
   ): Promise<void> {
     const promises: Promise<void>[] = []

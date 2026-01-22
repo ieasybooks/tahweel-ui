@@ -42,3 +42,58 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_open_folder_with_valid_temp_dir() {
+        // Create a temporary directory
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().to_string_lossy().to_string();
+
+        // This will attempt to open the folder
+        // On CI/headless systems it may fail, but the error message should be meaningful
+        let result = open_folder(path).await;
+
+        // We can't guarantee success on all systems (headless servers, CI)
+        // but we verify the function executes without panic
+        // In a GUI environment this would open the file manager
+        match result {
+            Ok(()) => {
+                // Success - folder was opened (or open::that succeeded)
+            }
+            Err(e) => {
+                // Expected on headless systems - verify error format
+                assert!(e.contains("Failed to open folder"));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_open_folder_nonexistent_path() {
+        // Test with a path that definitely doesn't exist
+        let result = open_folder("/nonexistent/path/that/should/not/exist/12345".to_string()).await;
+
+        // Behavior varies by OS:
+        // - Some OS will return an error
+        // - Some OS (like macOS) may succeed but show an error dialog
+        // We just verify no panic occurs
+        let _ = result;
+    }
+
+    #[tokio::test]
+    async fn test_open_folder_with_file_path() {
+        // Create a temporary file (not a directory)
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        let path = temp_file.path().to_string_lossy().to_string();
+
+        // Attempting to "open folder" on a file
+        let result = open_folder(path).await;
+
+        // On most systems, open::that on a file will open it with the default app
+        // We just verify no panic
+        let _ = result;
+    }
+}

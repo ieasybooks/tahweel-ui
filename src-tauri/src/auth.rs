@@ -447,10 +447,7 @@ fn parse_callback(request_line: &str, expected_state: &str) -> CallbackOutcome {
     }
 }
 
-async fn exchange_code_for_tokens(
-    code: &str,
-    code_verifier: &str,
-) -> Result<AuthTokens, String> {
+async fn exchange_code_for_tokens(code: &str, code_verifier: &str) -> Result<AuthTokens, String> {
     let client = reqwest::Client::new();
     let response = client
         .post(oauth_token_url())
@@ -631,7 +628,11 @@ mod tests {
     fn test_generate_url_safe_token_length_and_charset() {
         // 32 random bytes → 43 char base64url-no-pad (floor(32*8/6) = 42 chars + 1 padding char = 43).
         let token = generate_url_safe_token(32);
-        assert_eq!(token.len(), 43, "32 random bytes must encode to 43 base64url-no-pad chars");
+        assert_eq!(
+            token.len(),
+            43,
+            "32 random bytes must encode to 43 base64url-no-pad chars"
+        );
 
         // Only [A-Za-z0-9_-] in base64url-no-pad output.
         for c in token.chars() {
@@ -750,31 +751,46 @@ mod tests {
     #[test]
     fn test_callback_favicon_is_unrelated() {
         let req = "GET /favicon.ico HTTP/1.1";
-        assert_eq!(parse_callback(req, EXPECTED_STATE), CallbackOutcome::Unrelated);
+        assert_eq!(
+            parse_callback(req, EXPECTED_STATE),
+            CallbackOutcome::Unrelated
+        );
     }
 
     #[test]
     fn test_callback_plain_root_is_unrelated() {
         let req = "GET / HTTP/1.1";
-        assert_eq!(parse_callback(req, EXPECTED_STATE), CallbackOutcome::Unrelated);
+        assert_eq!(
+            parse_callback(req, EXPECTED_STATE),
+            CallbackOutcome::Unrelated
+        );
     }
 
     #[test]
     fn test_callback_non_get_is_unrelated() {
         let req = "POST /?code=abc&state=EXPECTED_STATE_XYZ HTTP/1.1";
-        assert_eq!(parse_callback(req, EXPECTED_STATE), CallbackOutcome::Unrelated);
+        assert_eq!(
+            parse_callback(req, EXPECTED_STATE),
+            CallbackOutcome::Unrelated
+        );
     }
 
     #[test]
     fn test_callback_empty_request_is_unrelated() {
-        assert_eq!(parse_callback("", EXPECTED_STATE), CallbackOutcome::Unrelated);
+        assert_eq!(
+            parse_callback("", EXPECTED_STATE),
+            CallbackOutcome::Unrelated
+        );
     }
 
     #[test]
     fn test_callback_unrelated_query_is_unrelated() {
         // Query params that are neither code nor error → not an OAuth callback.
         let req = "GET /?foo=bar HTTP/1.1";
-        assert_eq!(parse_callback(req, EXPECTED_STATE), CallbackOutcome::Unrelated);
+        assert_eq!(
+            parse_callback(req, EXPECTED_STATE),
+            CallbackOutcome::Unrelated
+        );
     }
 
     // --- html_escape ---

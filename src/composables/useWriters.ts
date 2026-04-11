@@ -1,4 +1,3 @@
-import { writeTextFile } from "@tauri-apps/plugin-fs"
 import { Document, Packer, Paragraph, TextRun, PageBreak } from "docx"
 import { invoke } from "@tauri-apps/api/core"
 import type { OutputFormat } from "@/stores/settings"
@@ -14,7 +13,7 @@ export function useWriters() {
   function isArabicText(text: string): boolean {
     const arabicChars = (text.match(/[\u0600-\u06FF]/g) || []).length
     const otherChars = (text.match(/[^\u0600-\u06FF\s\d\p{P}]/gu) || []).length
-    return arabicChars >= otherChars
+    return arabicChars > 0 && arabicChars >= otherChars
   }
 
   /**
@@ -73,7 +72,11 @@ export function useWriters() {
   }
 
   /**
-   * Write TXT output
+   * Write TXT output.
+   *
+   * Routed through the Rust `write_text_file` command (not the frontend fs
+   * plugin) so user-chosen output paths don't require a broad frontend FS
+   * capability scope.
    */
   async function writeTxt(
     texts: string[],
@@ -82,18 +85,26 @@ export function useWriters() {
   ): Promise<void> {
     const separator = options.pageSeparator || "\n\nPAGE_SEPARATOR\n\n"
     const content = texts.map((t) => t.trim()).join(separator)
-    await writeTextFile(`${outputPath}.txt`, content)
+    await invoke("write_text_file", {
+      path: `${outputPath}.txt`,
+      content,
+    })
   }
 
   /**
-   * Write JSON output
+   * Write JSON output.
+   *
+   * Routed through the Rust `write_text_file` command — see writeTxt for rationale.
    */
   async function writeJson(texts: string[], outputPath: string): Promise<void> {
     const data = texts.map((text, index) => ({
       page: index + 1,
       content: text.trim(),
     }))
-    await writeTextFile(`${outputPath}.json`, JSON.stringify(data, null, 2))
+    await invoke("write_text_file", {
+      path: `${outputPath}.json`,
+      content: JSON.stringify(data, null, 2),
+    })
   }
 
   /**
@@ -200,11 +211,12 @@ export function useWriters() {
   }
 
   return {
+    writeOutputs,
+    // Exposed for testing
     isArabicText,
     compactText,
     writeTxt,
     writeJson,
     writeDocx,
-    writeOutputs,
   }
 }

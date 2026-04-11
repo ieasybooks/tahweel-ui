@@ -56,7 +56,7 @@ function clearOutputDirectory() {
     </button>
 
     <!-- Content -->
-    <div v-show="isExpanded" id="settings-content" class="p-4 pt-0 space-y-4 border-t border-gray-200" role="region" :aria-label="t('settings.title')">
+    <div v-show="isExpanded" id="settings-content" class="p-4 space-y-4 border-t border-gray-200" role="region" :aria-label="t('settings.title')">
       <!-- DPI Setting -->
       <div class="space-y-2">
         <label :for="'dpi-slider'" class="block text-sm font-medium text-gray-700">

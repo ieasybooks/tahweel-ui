@@ -2,14 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { OutputFormat } from "@/stores/settings"
 
 // Mock Tauri APIs before importing useWriters
-vi.mock("@tauri-apps/plugin-fs", () => ({
-  writeTextFile: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockResolvedValue(undefined),
 }))
 
+import { invoke } from "@tauri-apps/api/core"
 import { useWriters } from "../useWriters"
 
 describe("useWriters", () => {
@@ -33,9 +30,8 @@ describe("useWriters", () => {
       expect(isArabicText("Hello مرحبا World Test")).toBe(false)
     })
 
-    it("returns true for empty string (no other chars)", () => {
-      // Edge case: empty string has 0 Arabic and 0 other, 0 >= 0 is true
-      expect(isArabicText("")).toBe(true)
+    it("returns false for empty string (no Arabic chars)", () => {
+      expect(isArabicText("")).toBe(false)
     })
 
     it("returns true for numbers and Arabic", () => {
@@ -43,8 +39,7 @@ describe("useWriters", () => {
     })
 
     it("returns false for numbers only", () => {
-      // Numbers are excluded from both counts, so 0 >= 0 is true
-      expect(isArabicText("123456")).toBe(true)
+      expect(isArabicText("123456")).toBe(false)
     })
 
     it("handles mixed content with punctuation", () => {
@@ -94,39 +89,37 @@ describe("useWriters", () => {
     })
 
     it("joins texts with default separator", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Page 1", "Page 2", "Page 3"]
 
       await writeTxt(texts, "/output/test", {})
 
-      expect(writeTextFile).toHaveBeenCalledWith(
-        "/output/test.txt",
-        "Page 1\n\nPAGE_SEPARATOR\n\nPage 2\n\nPAGE_SEPARATOR\n\nPage 3",
-      )
+      expect(invoke).toHaveBeenCalledWith("write_text_file", {
+        path: "/output/test.txt",
+        content:
+          "Page 1\n\nPAGE_SEPARATOR\n\nPage 2\n\nPAGE_SEPARATOR\n\nPage 3",
+      })
     })
 
     it("uses custom page separator", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Page 1", "Page 2"]
 
       await writeTxt(texts, "/output/test", { pageSeparator: "\n---\n" })
 
-      expect(writeTextFile).toHaveBeenCalledWith(
-        "/output/test.txt",
-        "Page 1\n---\nPage 2",
-      )
+      expect(invoke).toHaveBeenCalledWith("write_text_file", {
+        path: "/output/test.txt",
+        content: "Page 1\n---\nPage 2",
+      })
     })
 
     it("trims whitespace from texts", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["  Page 1  ", "\nPage 2\n"]
 
       await writeTxt(texts, "/output/test", {})
 
-      expect(writeTextFile).toHaveBeenCalledWith(
-        "/output/test.txt",
-        "Page 1\n\nPAGE_SEPARATOR\n\nPage 2",
-      )
+      expect(invoke).toHaveBeenCalledWith("write_text_file", {
+        path: "/output/test.txt",
+        content: "Page 1\n\nPAGE_SEPARATOR\n\nPage 2",
+      })
     })
   })
 
@@ -136,7 +129,6 @@ describe("useWriters", () => {
     })
 
     it("writes JSON with page numbers", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Page 1 content", "Page 2 content"]
 
       await writeJson(texts, "/output/test")
@@ -150,20 +142,23 @@ describe("useWriters", () => {
         2,
       )
 
-      expect(writeTextFile).toHaveBeenCalledWith(
-        "/output/test.json",
-        expectedJson,
-      )
+      expect(invoke).toHaveBeenCalledWith("write_text_file", {
+        path: "/output/test.json",
+        content: expectedJson,
+      })
     })
 
     it("trims content in JSON output", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["  trimmed  "]
 
       await writeJson(texts, "/output/test")
 
-      const call = (writeTextFile as ReturnType<typeof vi.fn>).mock.calls[0]
-      const parsed = JSON.parse(call[1])
+      // Find the write_text_file call and parse its content
+      const call = (invoke as ReturnType<typeof vi.fn>).mock.calls.find(
+        ([cmd]) => cmd === "write_text_file",
+      )
+      expect(call).toBeDefined()
+      const parsed = JSON.parse(call![1].content)
       expect(parsed[0].content).toBe("trimmed")
     })
   })
@@ -174,17 +169,22 @@ describe("useWriters", () => {
     })
 
     it("writes only requested formats", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
       await writeOutputs(texts, "/output/test", ["txt"] as OutputFormat[], {})
 
-      expect(writeTextFile).toHaveBeenCalledTimes(1)
-      expect(writeTextFile).toHaveBeenCalledWith("/output/test.txt", "Content")
+      const textFileCalls =
+        (invoke as ReturnType<typeof vi.fn>).mock.calls.filter(
+          ([cmd]) => cmd === "write_text_file",
+        )
+      expect(textFileCalls).toHaveLength(1)
+      expect(textFileCalls[0][1]).toEqual({
+        path: "/output/test.txt",
+        content: "Content",
+      })
     })
 
     it("writes multiple formats in parallel", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
       await writeOutputs(
@@ -194,16 +194,23 @@ describe("useWriters", () => {
         {},
       )
 
-      expect(writeTextFile).toHaveBeenCalledTimes(2)
+      const textFileCalls =
+        (invoke as ReturnType<typeof vi.fn>).mock.calls.filter(
+          ([cmd]) => cmd === "write_text_file",
+        )
+      expect(textFileCalls).toHaveLength(2)
     })
 
     it("handles empty formats array", async () => {
-      const { writeTextFile } = await import("@tauri-apps/plugin-fs")
       const texts = ["Content"]
 
       await writeOutputs(texts, "/output/test", [], {})
 
-      expect(writeTextFile).not.toHaveBeenCalled()
+      const textFileCalls =
+        (invoke as ReturnType<typeof vi.fn>).mock.calls.filter(
+          ([cmd]) => cmd === "write_text_file",
+        )
+      expect(textFileCalls).toHaveLength(0)
     })
   })
 })

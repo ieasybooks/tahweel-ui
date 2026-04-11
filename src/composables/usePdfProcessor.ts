@@ -12,14 +12,13 @@ export interface SplitResult {
   tempDir: string
 }
 
-/**
- * Cleanup a temporary directory
- */
-export async function cleanupTempDir(path: string): Promise<void> {
-  await invoke("cleanup_temp_dir", { path })
-}
-
 export function usePdfProcessor() {
+  /**
+   * Cleanup a temporary directory
+   */
+  async function cleanupTempDir(path: string): Promise<void> {
+    await invoke("cleanup_temp_dir", { path })
+  }
   /**
    * Get the total number of pages in a PDF file
    */
@@ -84,5 +83,6 @@ export function usePdfProcessor() {
     getPageCount,
     splitPdf,
     extractPage,
+    cleanupTempDir,
   }
 }

@@ -19,7 +19,6 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
   readDir: vi.fn(),
-  writeTextFile: vi.fn(),
 }))
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -47,7 +46,7 @@ import { useProcessingStore } from "@/stores/processing"
 import { useSettingsStore } from "@/stores/settings"
 import { useAuthStore } from "@/stores/auth"
 import { open, message } from "@tauri-apps/plugin-dialog"
-import { readDir, writeTextFile } from "@tauri-apps/plugin-fs"
+import { readDir } from "@tauri-apps/plugin-fs"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { dirname, basename, join } from "@tauri-apps/api/path"
@@ -121,14 +120,14 @@ describe("useFileProcessor", () => {
           return undefined
         case "write_binary_file":
           return undefined
+        case "write_text_file":
+          return undefined
         case "open_folder":
           return undefined
         default:
           return undefined
       }
     })
-
-    vi.mocked(writeTextFile).mockResolvedValue(undefined)
   }
 
   describe("collectFiles", () => {
@@ -322,8 +321,8 @@ describe("useFileProcessor", () => {
         "upload_to_google_drive",
         expect.any(Object),
       )
-      // Verify output was written
-      expect(writeTextFile).toHaveBeenCalled()
+      // Verify output was written (text files go through the Rust write_text_file command)
+      expect(invoke).toHaveBeenCalledWith("write_text_file", expect.any(Object))
       // Verify folder was opened
       expect(invoke).toHaveBeenCalledWith("open_folder", expect.any(Object))
     })
@@ -394,9 +393,13 @@ describe("useFileProcessor", () => {
       const { processFiles } = useFileProcessor()
       await processFiles(["/path/to/image.png"], "/output")
 
-      // Should have written txt and json files
-      const writeTextFileCalls = vi.mocked(writeTextFile).mock.calls
-      const writtenPaths = writeTextFileCalls.map((call) => String(call[0]))
+      // Should have written txt and json files via the Rust write_text_file command
+      const writeTextFileCalls = vi
+        .mocked(invoke)
+        .mock.calls.filter(([cmd]) => cmd === "write_text_file")
+      const writtenPaths = writeTextFileCalls.map((call) =>
+        String((call[1] as { path: string }).path),
+      )
 
       expect(writtenPaths.some((p) => p.endsWith(".txt"))).toBe(true)
       expect(writtenPaths.some((p) => p.endsWith(".json"))).toBe(true)
@@ -468,10 +471,10 @@ describe("useFileProcessor", () => {
         }
         if (cmd === "export_google_doc_as_text") return { text: "Text" }
         if (cmd === "delete_google_drive_file") return undefined
+        if (cmd === "write_text_file") return undefined
         if (cmd === "open_folder") return undefined
         return undefined
       })
-      vi.mocked(writeTextFile).mockResolvedValue(undefined)
 
       const store = useProcessingStore()
       const { processFiles } = useFileProcessor()
@@ -557,10 +560,49 @@ describe("useFileProcessor", () => {
       const store = useProcessingStore()
       store.startProcessing(["/file.png"], "/output")
 
-      const { cancelProcessing } = useFileProcessor()
-      cancelProcessing()
+      store.cancelProcessing()
 
       expect(store.isCancelled).toBe(true)
+    })
+  })
+
+  // Regression: drag-drop entry point in App.vue was silently early-returning
+  // on unauthenticated drops. The auth check must live in processFiles so that
+  // drag-drop, file picker, and folder picker all show the same error dialog.
+  describe("processFiles - drag-drop auth regression", () => {
+    it("shows auth error dialog when called unauthenticated", async () => {
+      vi.mocked(message).mockResolvedValue("Ok")
+
+      const { processFiles } = useFileProcessor()
+      await processFiles(["/dropped/file.pdf"], "/output")
+
+      expect(message).toHaveBeenCalledWith("messages.authRequired", {
+        title: "messages.errorTitle",
+        kind: "error",
+      })
+      // No upload or split should have been attempted.
+      expect(invoke).not.toHaveBeenCalledWith(
+        "upload_to_google_drive",
+        expect.any(Object),
+      )
+      expect(invoke).not.toHaveBeenCalledWith("split_pdf", expect.any(Object))
+    })
+
+    it("runs the pipeline when called authenticated", async () => {
+      setupAuthenticated()
+      setupFullProcessingMocks({ ocrText: "dropped text" })
+
+      const { processFiles } = useFileProcessor()
+      await processFiles(["/dropped/file.png"], "/output")
+
+      expect(message).not.toHaveBeenCalledWith(
+        "messages.authRequired",
+        expect.any(Object),
+      )
+      expect(invoke).toHaveBeenCalledWith(
+        "upload_to_google_drive",
+        expect.any(Object),
+      )
     })
   })
 

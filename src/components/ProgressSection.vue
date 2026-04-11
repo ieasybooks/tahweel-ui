@@ -3,11 +3,10 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useProcessingStore } from "@/stores/processing";
 import { useFileProcessor } from "@/composables/useFileProcessor";
-import { invoke } from "@tauri-apps/api/core";
 
 const { t } = useI18n();
 const processingStore = useProcessingStore();
-const { cancelProcessing } = useFileProcessor();
+const { openOutputFolder } = useFileProcessor();
 
 const stageText = computed(() => {
   if (!processingStore.currentFile) return "";
@@ -39,12 +38,6 @@ const completionMessage = computed(() => {
   if (count === 2) return t("messages.conversionCompleteTwo");
   return t("messages.conversionComplete", { count });
 });
-
-async function openOutputFolder() {
-  if (processingStore.outputFolder) {
-    await invoke("open_folder", { path: processingStore.outputFolder });
-  }
-}
 
 function startNewConversion() {
   processingStore.reset();
@@ -105,7 +98,7 @@ function startNewConversion() {
     <!-- Cancel Button -->
     <div v-if="processingStore.isProcessing && !processingStore.isCancelled" class="text-center">
       <button
-        @click="cancelProcessing"
+        @click="processingStore.cancelProcessing()"
         class="px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
         :aria-label="t('buttons.cancel')"
       >
@@ -119,7 +112,7 @@ function startNewConversion() {
     </div>
 
     <!-- Completed State -->
-    <div v-if="processingStore.lastCompleted && !processingStore.isProcessing" class="text-center space-y-4" role="status" aria-live="polite">
+    <div v-if="processingStore.conversionCompleted && !processingStore.isProcessing" class="text-center space-y-4" role="status" aria-live="polite">
       <!-- Success Icon -->
       <div class="flex justify-center">
         <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center" aria-hidden="true">

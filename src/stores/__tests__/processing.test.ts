@@ -35,9 +35,9 @@ describe("useProcessingStore", () => {
       expect(store.errors).toEqual([])
     })
 
-    it("starts with lastCompleted false", () => {
+    it("starts with conversionCompleted false", () => {
       const store = useProcessingStore()
-      expect(store.lastCompleted).toBe(false)
+      expect(store.conversionCompleted).toBe(false)
     })
 
     it("starts with null output folder", () => {
@@ -144,12 +144,12 @@ describe("useProcessingStore", () => {
       expect(store.outputFolder).toBe("/output/folder")
     })
 
-    it("resets lastCompleted flag", () => {
+    it("resets conversionCompleted flag", () => {
       const store = useProcessingStore()
-      store.lastCompleted = true
+      store.conversionCompleted = true
 
       store.startProcessing(["/file.pdf"], "/output")
-      expect(store.lastCompleted).toBe(false)
+      expect(store.conversionCompleted).toBe(false)
     })
   })
 
@@ -250,11 +250,11 @@ describe("useProcessingStore", () => {
       expect(store.currentFile).toBeNull()
     })
 
-    it("sets lastCompleted to true", () => {
+    it("sets conversionCompleted to true", () => {
       const store = useProcessingStore()
       store.startProcessing(["/file.pdf"], "/output")
       store.finishProcessing()
-      expect(store.lastCompleted).toBe(true)
+      expect(store.conversionCompleted).toBe(true)
     })
   })
 
@@ -286,7 +286,7 @@ describe("useProcessingStore", () => {
       expect(store.completedFiles).toBe(0)
       expect(store.totalFiles).toBe(0)
       expect(store.errors).toEqual([])
-      expect(store.lastCompleted).toBe(false)
+      expect(store.conversionCompleted).toBe(false)
       expect(store.outputFolder).toBeNull()
     })
   })
@@ -338,7 +338,7 @@ describe("useProcessingStore", () => {
       // Finish
       store.finishProcessing()
       expect(store.isProcessing).toBe(false)
-      expect(store.lastCompleted).toBe(true)
+      expect(store.conversionCompleted).toBe(true)
     })
 
     it("handles workflow with errors", () => {
@@ -357,7 +357,7 @@ describe("useProcessingStore", () => {
 
       expect(store.errors).toHaveLength(1)
       expect(store.completedFiles).toBe(2)
-      expect(store.lastCompleted).toBe(true)
+      expect(store.conversionCompleted).toBe(true)
     })
   })
 })

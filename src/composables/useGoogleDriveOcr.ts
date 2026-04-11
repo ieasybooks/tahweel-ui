@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core"
-import { useProcessingStore } from "@/stores/processing"
 import { useToastStore } from "@/stores/toast"
 import { useAuth } from "./useAuth"
 import pLimit from "p-limit"
@@ -13,11 +12,6 @@ export interface OcrProgress {
 export interface OcrError {
   index: number
   error: string
-}
-
-export interface OcrResult {
-  texts: string[]
-  errors: OcrError[]
 }
 
 export interface ExtractedText {
@@ -34,7 +28,6 @@ interface ExportResult {
 }
 
 export function useGoogleDriveOcr() {
-  const processingStore = useProcessingStore()
   const toastStore = useToastStore()
   const { ensureValidToken } = useAuth()
 
@@ -95,13 +88,14 @@ export function useGoogleDriveOcr() {
   }
 
   /**
-   * Delete multiple files from Google Drive (for cleanup on cancellation)
+   * Delete multiple files from Google Drive (best-effort cleanup).
+   * Intentionally does not throw on auth failure — used during
+   * cancellation cleanup where a missing token should not block teardown.
    */
   async function deleteFiles(fileIds: string[]): Promise<void> {
     const accessToken = await ensureValidToken()
     if (!accessToken) return
 
-    // Delete files in parallel, ignoring errors
     await Promise.allSettled(
       fileIds.map((fileId) =>
         invoke("delete_google_drive_file", { fileId, accessToken }),
@@ -127,6 +121,7 @@ export function useGoogleDriveOcr() {
     imagePaths: string[],
     concurrency: number,
     onProgress?: (progress: OcrProgress) => void,
+    isCancelled?: () => boolean,
   ): Promise<string[]> {
     const limit = pLimit(concurrency)
     const results: Array<string | null> = Array.from(
@@ -140,7 +135,7 @@ export function useGoogleDriveOcr() {
     const tasks = imagePaths.map((path, index) =>
       limit(async () => {
         // Check for cancellation before starting
-        if (processingStore.isCancelled) {
+        if (isCancelled?.()) {
           throw new Error("Processing cancelled")
         }
 
@@ -152,7 +147,7 @@ export function useGoogleDriveOcr() {
           uploadedFileIds.push(fileId)
 
           // Check for cancellation after upload
-          if (processingStore.isCancelled) {
+          if (isCancelled?.()) {
             throw new Error("Processing cancelled")
           }
 
@@ -195,14 +190,14 @@ export function useGoogleDriveOcr() {
       await Promise.all(tasks)
     } catch (error) {
       // If cancelled, clean up all uploaded files
-      if (processingStore.isCancelled && uploadedFileIds.length > 0) {
+      if (isCancelled?.() && uploadedFileIds.length > 0) {
         await deleteFiles(uploadedFileIds)
       }
       throw error
     }
 
     // If we have errors but not cancelled, notify user and log them
-    if (errors.length > 0 && !processingStore.isCancelled) {
+    if (errors.length > 0 && !isCancelled?.()) {
       console.warn(`OCR completed with ${errors.length} errors:`, errors)
       toastStore.warning("toast.ocrPartialErrors", { count: errors.length })
     }

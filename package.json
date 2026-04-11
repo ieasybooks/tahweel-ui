@@ -1,6 +1,6 @@
 {
   "name": "tahweel-tauri",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "PDF/Image OCR application using Google Drive API",
   "type": "module",
   "scripts": {
@@ -22,8 +22,6 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "@tauri-apps/plugin-fs": "^2.0.0",
-    "@tauri-apps/plugin-http": "^2.0.0",
-    "@tauri-apps/plugin-shell": "^2.0.0",
     "docx": "^8.5.0",
     "p-limit": "^6.1.0",
     "pinia": "^2.2.0",

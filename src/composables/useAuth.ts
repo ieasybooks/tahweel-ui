@@ -4,7 +4,7 @@ import { useToastStore } from "@/stores/toast"
 
 export interface AuthTokens {
   access_token: string
-  refresh_token: string
+  refresh_token: string | null
   expires_in: number
 }
 

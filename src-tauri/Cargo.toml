@@ -1,10 +1,10 @@
 [package]
 name = "tahweel-tauri"
-version = "0.1.0"
+version = "0.1.2"
 description = "PDF/Image OCR application using Google Drive API"
 authors = ["Tahweel"]
 license = "MIT"
-repository = ""
+repository = "https://github.com/ieasybooks/tahweel-tauri"
 edition = "2021"
 rust-version = "1.70"
 
@@ -19,8 +19,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
-tauri-plugin-http = "2"
-tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -31,6 +29,8 @@ dirs = "5"
 url = "2"
 base64 = "0.22"
 urlencoding = "2"
+rand = "0.8"
+sha2 = "0.10"
 open = "5"
 pdfium-render = { version = "0.8", features = ["image"] }
 image = "0.25"

@@ -341,7 +341,12 @@ describe("useGoogleDriveOcr", () => {
       const { extractText } = useGoogleDriveOcr()
 
       await expect(
-        extractText(["/p1.png", "/p2.png", "/p3.png"], 1),
+        extractText(
+          ["/p1.png", "/p2.png", "/p3.png"],
+          1,
+          undefined,
+          () => store.isCancelled,
+        ),
       ).rejects.toThrow("cancelled")
     })
 
@@ -370,7 +375,12 @@ describe("useGoogleDriveOcr", () => {
       const { extractText } = useGoogleDriveOcr()
 
       try {
-        await extractText(["/p1.png", "/p2.png", "/p3.png"], 1)
+        await extractText(
+          ["/p1.png", "/p2.png", "/p3.png"],
+          1,
+          undefined,
+          () => store.isCancelled,
+        )
       } catch {
         // Expected
       }

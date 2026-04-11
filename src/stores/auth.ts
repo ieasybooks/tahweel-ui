@@ -3,7 +3,7 @@ import { ref, computed } from "vue"
 
 export interface TokenData {
   accessToken: string
-  refreshToken: string
+  refreshToken: string | null
   expiresAt: number
 }
 

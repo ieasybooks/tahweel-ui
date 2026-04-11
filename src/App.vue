@@ -2,20 +2,20 @@
 import { computed, watch, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useSettingsStore } from "./stores/settings";
-import { useAuthStore } from "./stores/auth";
-import { useProcessingStore } from "./stores/processing";
-import { useAuth } from "./composables/useAuth";
+import { useSettingsStore } from "@/stores/settings";
+import { useAuthStore } from "@/stores/auth";
+import { useProcessingStore } from "@/stores/processing";
+import { useAuth } from "@/composables/useAuth";
 
-import HeaderSection from "./components/HeaderSection.vue";
-import ConvertButtons from "./components/ConvertButtons.vue";
-import ProgressSection from "./components/ProgressSection.vue";
-import SettingsPanel from "./components/SettingsPanel.vue";
-import AuthStatus from "./components/AuthStatus.vue";
-import LanguageDropdown from "./components/LanguageDropdown.vue";
-import DropZone from "./components/DropZone.vue";
-import ToastContainer from "./components/ToastContainer.vue";
-import { useFileProcessor } from "./composables/useFileProcessor";
+import HeaderSection from "@/components/HeaderSection.vue";
+import ConvertButtons from "@/components/ConvertButtons.vue";
+import ProgressSection from "@/components/ProgressSection.vue";
+import SettingsPanel from "@/components/SettingsPanel.vue";
+import AuthStatus from "@/components/AuthStatus.vue";
+import LanguageDropdown from "@/components/LanguageDropdown.vue";
+import DropZone from "@/components/DropZone.vue";
+import ToastContainer from "@/components/ToastContainer.vue";
+import { useFileProcessor } from "@/composables/useFileProcessor";
 import { dirname } from "@tauri-apps/api/path";
 
 const { locale, t } = useI18n();
@@ -27,7 +27,8 @@ const { processFiles } = useFileProcessor();
 
 async function handleFilesDropped(paths: string[]) {
   if (paths.length === 0) return;
-  // Use the first file's directory as output dir, or the custom output directory
+  // Auth check is handled inside processFiles, which shows a dialog
+  // to keep drag-drop behavior consistent with the file/folder picker buttons.
   const firstFileDir = await dirname(paths[0]);
   const outputDir = settingsStore.outputDirectory ?? firstFileDir;
   await processFiles(paths, outputDir);
@@ -86,7 +87,7 @@ watch(locale, async (newLocale) => {
       <ConvertButtons :disabled="processingStore.isProcessing || !authStore.isAuthenticated" />
 
       <!-- Progress Section -->
-      <ProgressSection v-if="processingStore.isProcessing || processingStore.lastCompleted" />
+      <ProgressSection v-if="processingStore.isProcessing || processingStore.conversionCompleted" />
 
       <!-- Settings Panel -->
       <SettingsPanel />

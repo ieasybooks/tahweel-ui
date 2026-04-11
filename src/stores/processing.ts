@@ -17,15 +17,6 @@ export interface FileProgress {
   percentage: number
 }
 
-export interface ProcessingState {
-  files: string[]
-  currentFileIndex: number
-  currentFile: FileProgress | null
-  completedFiles: number
-  totalFiles: number
-  errors: ProcessingError[]
-}
-
 export const useProcessingStore = defineStore("processing", () => {
   const isProcessing = ref(false)
   const isCancelled = ref(false)
@@ -35,7 +26,7 @@ export const useProcessingStore = defineStore("processing", () => {
   const completedFiles = ref(0)
   const totalFiles = ref(0)
   const errors = ref<ProcessingError[]>([])
-  const lastCompleted = ref(false)
+  const conversionCompleted = ref(false)
   const outputFolder = ref<string | null>(null)
 
   const globalProgress = computed(() => {
@@ -56,7 +47,7 @@ export const useProcessingStore = defineStore("processing", () => {
     completedFiles.value = 0
     currentFile.value = null
     errors.value = []
-    lastCompleted.value = false
+    conversionCompleted.value = false
     outputFolder.value = outputDir
   }
 
@@ -80,7 +71,7 @@ export const useProcessingStore = defineStore("processing", () => {
   function finishProcessing() {
     isProcessing.value = false
     currentFile.value = null
-    lastCompleted.value = true
+    conversionCompleted.value = true
   }
 
   function reset() {
@@ -92,7 +83,7 @@ export const useProcessingStore = defineStore("processing", () => {
     completedFiles.value = 0
     totalFiles.value = 0
     errors.value = []
-    lastCompleted.value = false
+    conversionCompleted.value = false
     outputFolder.value = null
   }
 
@@ -105,7 +96,7 @@ export const useProcessingStore = defineStore("processing", () => {
     completedFiles,
     totalFiles,
     errors,
-    lastCompleted,
+    conversionCompleted,
     outputFolder,
     globalProgress,
     fileProgress,

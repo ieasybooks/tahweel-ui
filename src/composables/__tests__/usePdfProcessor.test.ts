@@ -9,7 +9,7 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn(),
 }))
 
-import { usePdfProcessor, cleanupTempDir } from "../usePdfProcessor"
+import { usePdfProcessor } from "../usePdfProcessor"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 
@@ -22,6 +22,7 @@ describe("usePdfProcessor", () => {
     it("invokes cleanup_temp_dir with path", async () => {
       vi.mocked(invoke).mockResolvedValue(undefined)
 
+      const { cleanupTempDir } = usePdfProcessor()
       await cleanupTempDir("/tmp/test-dir")
 
       expect(invoke).toHaveBeenCalledWith("cleanup_temp_dir", {
@@ -32,6 +33,7 @@ describe("usePdfProcessor", () => {
     it("propagates errors from invoke", async () => {
       vi.mocked(invoke).mockRejectedValue(new Error("Cleanup failed"))
 
+      const { cleanupTempDir } = usePdfProcessor()
       await expect(cleanupTempDir("/tmp/test")).rejects.toThrow(
         "Cleanup failed",
       )

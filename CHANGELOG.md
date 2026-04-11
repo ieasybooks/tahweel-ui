@@ -5,6 +5,23 @@ All notable changes to Tahweel will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-04-11
+
+### Added
+- Added a root `LICENSE` file and repository metadata in Cargo
+- Added a "Privacy and Trust" section documenting Google Drive OCR flow, token storage, and sign-out behavior
+
+### Changed
+- Reduced the Tauri webview permission surface and removed unused HTTP and shell plugins
+- Refined the processing pipeline cleanup flow and aligned progress/completion state naming
+
+### Fixed
+- Fixed drag-and-drop so signed-out users see the same auth-required error as file-picker flows
+- Hardened desktop OAuth with PKCE and `state` validation
+- Fixed localhost OAuth callbacks with missing or mismatched `state` so they are rejected without aborting the in-flight sign-in
+- Fixed toast helper parameter ordering and Arabic text detection in generated output
+- Moved TXT and JSON writing from the frontend filesystem plugin to Rust commands, simplifying the frontend capability set
+
 ## [0.1.1] - 2026-01-22
 
 ### Changed
@@ -105,5 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rust 1.70+
 - Platform-specific build tools (Xcode, Visual Studio, etc.)
 
-[0.1.1]: https://github.com/ieasybooks/tahweel-ui/releases/tag/0.1.1
-[0.1.0]: https://github.com/ieasybooks/tahweel-ui/releases/tag/0.1.0
+[0.1.2]: https://github.com/ieasybooks/tahweel-tauri/releases/tag/0.1.2
+[0.1.1]: https://github.com/ieasybooks/tahweel-tauri/releases/tag/0.1.1
+[0.1.0]: https://github.com/ieasybooks/tahweel-tauri/releases/tag/0.1.0

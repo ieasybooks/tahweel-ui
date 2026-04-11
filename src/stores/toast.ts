@@ -17,8 +17,8 @@ export const useToastStore = defineStore("toast", () => {
   function addToast(
     messageKey: string,
     type: Toast["type"] = "info",
-    duration: number = 5000,
     messageParams?: Record<string, string | number>,
+    duration: number = 5000,
   ) {
     const id = ++toastId
     toasts.value.push({ id, messageKey, messageParams, type, duration })
@@ -44,7 +44,7 @@ export const useToastStore = defineStore("toast", () => {
     params?: Record<string, string | number>,
     duration?: number,
   ) {
-    return addToast(messageKey, "error", duration, params)
+    return addToast(messageKey, "error", params, duration)
   }
 
   function success(
@@ -52,7 +52,7 @@ export const useToastStore = defineStore("toast", () => {
     params?: Record<string, string | number>,
     duration?: number,
   ) {
-    return addToast(messageKey, "success", duration, params)
+    return addToast(messageKey, "success", params, duration)
   }
 
   function warning(
@@ -60,7 +60,7 @@ export const useToastStore = defineStore("toast", () => {
     params?: Record<string, string | number>,
     duration?: number,
   ) {
-    return addToast(messageKey, "warning", duration, params)
+    return addToast(messageKey, "warning", params, duration)
   }
 
   function info(
@@ -68,7 +68,7 @@ export const useToastStore = defineStore("toast", () => {
     params?: Record<string, string | number>,
     duration?: number,
   ) {
-    return addToast(messageKey, "info", duration, params)
+    return addToast(messageKey, "info", params, duration)
   }
 
   function clear() {

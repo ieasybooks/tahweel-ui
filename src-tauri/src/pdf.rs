@@ -265,6 +265,17 @@ pub async fn write_binary_file(path: String, data: Vec<u8>) -> Result<(), String
     fs::write(&path, &data).map_err(|e| format!("Failed to write file: {}", e))
 }
 
+/// Write text content to a file (used for TXT and JSON output).
+///
+/// Routed through the Rust side rather than the `@tauri-apps/plugin-fs`
+/// frontend plugin so the narrowed capability set does not need
+/// `fs:allow-write-text-file` with a permissive scope. Rust commands
+/// run in-process and are not subject to frontend capability scoping.
+#[tauri::command]
+pub async fn write_text_file(path: String, content: String) -> Result<(), String> {
+    fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +406,46 @@ mod tests {
     async fn test_write_binary_file_invalid_path() {
         let result =
             write_binary_file("/nonexistent/path/file.bin".to_string(), vec![1, 2, 3]).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to write file"));
+    }
+
+    #[tokio::test]
+    async fn test_write_text_file_creates_file() {
+        let temp = tempdir().unwrap();
+        let file_path = temp.path().join("out.txt").to_string_lossy().to_string();
+
+        let content = "hello world\nسلام".to_string();
+        let result = write_text_file(file_path.clone(), content.clone()).await;
+        assert!(result.is_ok());
+
+        let read = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(read, content);
+    }
+
+    #[tokio::test]
+    async fn test_write_text_file_overwrites_existing() {
+        let temp = tempdir().unwrap();
+        let file_path = temp.path().join("out.txt").to_string_lossy().to_string();
+
+        write_text_file(file_path.clone(), "first".to_string())
+            .await
+            .unwrap();
+        write_text_file(file_path.clone(), "second".to_string())
+            .await
+            .unwrap();
+
+        let read = fs::read_to_string(&file_path).unwrap();
+        assert_eq!(read, "second");
+    }
+
+    #[tokio::test]
+    async fn test_write_text_file_invalid_path() {
+        let result = write_text_file(
+            "/nonexistent/path/file.txt".to_string(),
+            "content".to_string(),
+        )
+        .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to write file"));
     }

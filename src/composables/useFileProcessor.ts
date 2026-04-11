@@ -6,12 +6,12 @@ import { useProcessingStore } from "@/stores/processing"
 import { useSettingsStore } from "@/stores/settings"
 import { useAuthStore } from "@/stores/auth"
 import { useToastStore } from "@/stores/toast"
-import { usePdfProcessor, cleanupTempDir } from "./usePdfProcessor"
+import { usePdfProcessor } from "./usePdfProcessor"
 import { useGoogleDriveOcr } from "./useGoogleDriveOcr"
 import { useWriters } from "./useWriters"
 import { dirname, basename, join } from "@tauri-apps/api/path"
 
-const SUPPORTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"]
+export const SUPPORTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"]
 
 /**
  * Get file extension from filename, handling edge cases
@@ -27,7 +27,7 @@ function getFileExtension(filename: string): string | null {
 /**
  * Check if a file has a supported extension
  */
-function isSupportedFile(filename: string): boolean {
+export function isSupportedFile(filename: string): boolean {
   const ext = getFileExtension(filename)
   return ext !== null && SUPPORTED_EXTENSIONS.includes(ext)
 }
@@ -38,7 +38,7 @@ export function useFileProcessor() {
   const settingsStore = useSettingsStore()
   const authStore = useAuthStore()
   const toastStore = useToastStore()
-  const { splitPdf } = usePdfProcessor()
+  const { splitPdf, cleanupTempDir } = usePdfProcessor()
   const { extractText } = useGoogleDriveOcr()
   const { writeOutputs } = useWriters()
 
@@ -137,12 +137,7 @@ export function useFileProcessor() {
       processingStore.outputFolder &&
       processingStore.completedFiles > 0
     ) {
-      try {
-        await invoke("open_folder", { path: processingStore.outputFolder })
-      } catch (error) {
-        console.error("Failed to open folder:", error)
-        toastStore.warning("toast.openFolderFailed")
-      }
+      await openOutputFolder()
     }
   }
 
@@ -151,99 +146,85 @@ export function useFileProcessor() {
     const ext = getFileExtension(fileName) || ""
     const nameWithoutExt = fileName.replace(/\.[^.]+$/, "")
 
-    // Check for cancellation
-    if (processingStore.isCancelled) {
-      throw new Error("Processing cancelled")
+    function reportStage(
+      stage: import("@/stores/processing").ProcessingStage,
+      currentPage = 0,
+      totalPages = 0,
+      percentage = 0,
+    ) {
+      processingStore.updateFileProgress({
+        filePath,
+        fileName,
+        stage,
+        currentPage,
+        totalPages,
+        percentage,
+      })
     }
 
-    // Update progress
-    processingStore.updateFileProgress({
-      filePath,
-      fileName,
-      stage: "preparing",
-      currentPage: 0,
-      totalPages: 0,
-      percentage: 0,
-    })
+    function checkCancelled() {
+      if (processingStore.isCancelled) {
+        throw new Error("Processing cancelled")
+      }
+    }
+
+    checkCancelled()
+    reportStage("preparing")
 
     let imagePaths: string[]
     let tempDir: string | null = null
 
-    if (ext === ".pdf") {
-      // Check for cancellation before PDF split
-      if (processingStore.isCancelled) {
-        throw new Error("Processing cancelled")
-      }
-
-      // Split PDF into images
-      processingStore.updateFileProgress({
-        filePath,
-        fileName,
-        stage: "splitting",
-        currentPage: 0,
-        totalPages: 0,
-        percentage: 0,
-      })
-
-      const result = await splitPdf(filePath, settingsStore.dpi, (progress) => {
-        processingStore.updateFileProgress({
-          filePath,
-          fileName,
-          stage: "splitting",
-          currentPage: progress.currentPage,
-          totalPages: progress.totalPages,
-          percentage: progress.percentage,
-        })
-      })
-
-      imagePaths = result.imagePaths
-      tempDir = result.tempDir
-    } else {
-      // Single image
-      imagePaths = [filePath]
-    }
-
-    // Check for cancellation before OCR
-    if (processingStore.isCancelled) {
-      // Clean up temp directory if we created one
-      if (tempDir) {
-        try {
-          await cleanupTempDir(tempDir)
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-      throw new Error("Processing cancelled")
-    }
-
-    // OCR all images
-    processingStore.updateFileProgress({
-      filePath,
-      fileName,
-      stage: "ocr",
-      currentPage: 0,
-      totalPages: imagePaths.length,
-      percentage: 0,
-    })
-
-    let texts: string[]
     try {
-      texts = await extractText(
+      if (ext === ".pdf") {
+        checkCancelled()
+        reportStage("splitting")
+
+        const result = await splitPdf(
+          filePath,
+          settingsStore.dpi,
+          (progress) => {
+            reportStage(
+              "splitting",
+              progress.currentPage,
+              progress.totalPages,
+              progress.percentage,
+            )
+          },
+        )
+
+        imagePaths = result.imagePaths
+        tempDir = result.tempDir
+      } else {
+        imagePaths = [filePath]
+      }
+
+      checkCancelled()
+      reportStage("ocr", 0, imagePaths.length)
+
+      const texts = await extractText(
         imagePaths,
         settingsStore.ocrConcurrency,
         (progress) => {
-          processingStore.updateFileProgress({
-            filePath,
-            fileName,
-            stage: "ocr",
-            currentPage: progress.completed,
-            totalPages: progress.total,
-            percentage: progress.percentage,
-          })
+          reportStage(
+            "ocr",
+            progress.completed,
+            progress.total,
+            progress.percentage,
+          )
         },
+        () => processingStore.isCancelled,
       )
-    } catch (error) {
-      // Clean up temp directory on error
+
+      checkCancelled()
+      reportStage("writing", 0, 0, 90)
+
+      const outputBasePath = await join(baseOutputDir, nameWithoutExt)
+      await writeOutputs(texts, outputBasePath, settingsStore.formats, {
+        pageSeparator: settingsStore.pageSeparator,
+      })
+
+      reportStage("done", imagePaths.length, imagePaths.length, 100)
+    } finally {
       if (tempDir) {
         try {
           await cleanupTempDir(tempDir)
@@ -251,57 +232,17 @@ export function useFileProcessor() {
           // Ignore cleanup errors
         }
       }
-      throw error
     }
-
-    // Check for cancellation before writing
-    if (processingStore.isCancelled) {
-      if (tempDir) {
-        try {
-          await cleanupTempDir(tempDir)
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-      throw new Error("Processing cancelled")
-    }
-
-    // Write outputs
-    processingStore.updateFileProgress({
-      filePath,
-      fileName,
-      stage: "writing",
-      currentPage: 0,
-      totalPages: 0,
-      percentage: 90,
-    })
-
-    const outputBasePath = await join(baseOutputDir, nameWithoutExt)
-    await writeOutputs(texts, outputBasePath, settingsStore.formats, {
-      pageSeparator: settingsStore.pageSeparator,
-    })
-
-    // Cleanup temp directory
-    if (tempDir) {
-      try {
-        await cleanupTempDir(tempDir)
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-
-    processingStore.updateFileProgress({
-      filePath,
-      fileName,
-      stage: "done",
-      currentPage: imagePaths.length,
-      totalPages: imagePaths.length,
-      percentage: 100,
-    })
   }
 
-  function cancelProcessing() {
-    processingStore.cancelProcessing()
+  async function openOutputFolder() {
+    if (!processingStore.outputFolder) return
+    try {
+      await invoke("open_folder", { path: processingStore.outputFolder })
+    } catch (error) {
+      console.error("Failed to open folder:", error)
+      toastStore.warning("toast.openFolderFailed")
+    }
   }
 
   return {
@@ -309,6 +250,6 @@ export function useFileProcessor() {
     selectFolder,
     processFiles,
     collectFiles,
-    cancelProcessing,
+    openOutputFolder,
   }
 }

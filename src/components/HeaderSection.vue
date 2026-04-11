@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 <template>
   <header class="text-center space-y-2">
-    <div class="flex justify-center mb-2">
+    <div class="flex justify-center mb-6">
       <img :src="logoImage" :alt="t('app.logoAlt')" class="w-24 h-24 rounded-2xl shadow-lg" />
     </div>
     <p class="text-gray-600">{{ t("app.subtitle") }}</p>
